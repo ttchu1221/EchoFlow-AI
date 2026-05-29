@@ -1,4 +1,4 @@
-"""FastAPI 后端入口 — EchoFlow AI 全功能版"""
+"""FastAPI 后端入口 — EchoFlow AI v1.1 全功能版"""
 
 from __future__ import annotations
 
@@ -13,7 +13,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agents import manager, memory_agent
 from crawlers.data_source import fetch_hot_search
-from memory.store import delete_record, get_history, get_record
+from memory.store import (
+    delete_record, get_history, get_record,
+    # v1.1
+    save_growth_memory, get_growth_memories, get_growth_stats,
+    save_strategy_memory, get_strategy_memories, get_active_prompts,
+)
 from models.schemas import (
     # Phase 1
     OptimizeRequest,
@@ -39,6 +44,13 @@ from models.schemas import (
     AnalyticsResponse,
     CreatorProfileRequest,
     MemorySearchRequest,
+    # v1.1
+    StrategyRequest,
+    StrategyResponse,
+    GrowthLoopRequest,
+    GrowthLoopResponse,
+    GrowthMemory,
+    StrategyMemory,
 )
 
 # ── 日志配置 ──────────────────────────────────────────────
@@ -68,8 +80,8 @@ async def lifespan(app: FastAPI):
 # ── FastAPI 实例 ──────────────────────────────────────────
 app = FastAPI(
     title="EchoFlow AI",
-    description="AI 驱动的内容运营智能体 — 全功能版",
-    version="0.2.0",
+    description="AI 驱动的内容运营智能体 — v1.1 增长闭环版",
+    version="1.1.0",
     lifespan=lifespan,
 )
 
@@ -92,7 +104,7 @@ def _rid() -> str:
 
 @app.get("/")
 async def root():
-    return {"name": "EchoFlow AI", "version": "0.2.0", "description": "AI 内容运营智能体 — 全功能版"}
+    return {"name": "EchoFlow AI", "version": "1.1.0", "description": "AI 内容运营智能体 — v1.1 增长闭环版"}
 
 
 @app.get("/api/health")
@@ -295,6 +307,77 @@ async def get_memory_insights(creator_id: str, llm_provider: str | None = None):
     except Exception as e:
         logger.exception("获取洞察失败")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════════════════════════
+#  v1.1: 策略智能体 / 增长闭环 / 增长记忆 / 策略记忆
+# ══════════════════════════════════════════════════════════
+
+@app.post("/api/strategy", response_model=StrategyResponse)
+async def generate_strategy(req: StrategyRequest):
+    rid = _rid()
+    logger.info(f"[API] 策略生成 | id={rid} | goal={req.growth_goal}")
+    try:
+        return await manager.run_strategy_pipeline(req, platform_config, rid)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("策略生成失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/growth-loop", response_model=GrowthLoopResponse)
+async def run_growth_loop(req: GrowthLoopRequest):
+    rid = _rid()
+    logger.info(f"[API] 增长闭环 | id={rid} | creator={req.creator_id}")
+    try:
+        return await manager.run_growth_loop_pipeline(req, platform_config, rid)
+    except Exception as e:
+        logger.exception("增长闭环失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/growth-memories")
+async def create_growth_memory(memory: dict):
+    try:
+        result = await save_growth_memory(memory)
+        return result
+    except Exception as e:
+        logger.exception("保存增长记忆失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/growth-memories")
+async def list_growth_memories(creator_id: str | None = None, outcome: str | None = None, limit: int = 20):
+    memories = await get_growth_memories(creator_id, outcome, limit)
+    return {"memories": memories, "count": len(memories)}
+
+
+@app.get("/api/growth-stats")
+async def growth_stats(creator_id: str | None = None):
+    return await get_growth_stats(creator_id)
+
+
+@app.post("/api/strategy-memories")
+async def create_strategy_memory(memory: dict):
+    try:
+        result = await save_strategy_memory(memory)
+        return result
+    except Exception as e:
+        logger.exception("保存策略记忆失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/strategy-memories")
+async def list_strategy_memories(creator_id: str | None = None, status: str | None = None, limit: int = 20):
+    memories = await get_strategy_memories(creator_id, status, limit)
+    return {"memories": memories, "count": len(memories)}
+
+
+@app.get("/api/active-prompts")
+async def list_active_prompts(creator_id: str | None = None):
+    prompts = await get_active_prompts(creator_id)
+    return {"prompts": prompts, "count": len(prompts)}
 
 
 # ══════════════════════════════════════════════════════════

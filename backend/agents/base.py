@@ -1,4 +1,4 @@
-"""LLM 抽象层 — 支持 Qwen / DeepSeek / GPT / Mimo 可切换"""
+"""LLM 抽象层 — 支持 Qwen / DeepSeek / GPT / Mimo 可切换 + 智能路由"""
 
 from __future__ import annotations
 
@@ -16,6 +16,16 @@ load_dotenv()
 logger = logging.getLogger(__name__)
 
 Provider = Literal["qwen", "deepseek", "openai", "mimo"]
+TaskType = Literal["classify", "creative", "analysis", "reasoning"]
+
+# ── 智能路由：按任务类型映射最优 Provider ─────────────────
+# PRD 设计：分类→Qwen（快/便宜）、创意→DeepSeek、推理→GPT-4o
+_TASK_PROVIDER_MAP: dict[str, str] = {
+    "classify": "qwen",       # 分类与标签：性价比高，速度快
+    "creative": "deepseek",   # 文案与脚本生成：创意能力强
+    "analysis": "openai",     # 数据分析：综合能力好
+    "reasoning": "openai",    # 复杂推理与策略：能力最全面
+}
 
 _PROVIDER_CONFIG: dict[str, dict] = {
     "qwen": {
@@ -77,6 +87,40 @@ def get_llm(
         temperature=temperature,
         max_tokens=max_tokens,
     )
+
+
+def get_smart_llm(
+    task_type: TaskType,
+    temperature: float | None = None,
+    max_tokens: int = 2000,
+    override_provider: str | None = None,
+) -> ChatOpenAI:
+    """根据任务类型智能选择最优 LLM。
+
+    优先使用 override_provider，否则按 task_type 自动路由。
+    温度未指定时按任务类型自动设定。
+    """
+    provider = override_provider or _TASK_PROVIDER_MAP.get(task_type, "qwen")
+
+    # 自动设定温度
+    if temperature is None:
+        temperature = {
+            "classify": 0.3,
+            "creative": 0.9,
+            "analysis": 0.4,
+            "reasoning": 0.5,
+        }.get(task_type, 0.7)
+
+    logger.info(f"智能路由: task={task_type} → provider={provider} (temp={temperature})")
+
+    # 若目标 provider 未配置 API Key，降级到默认 provider
+    cfg = _PROVIDER_CONFIG[provider]
+    if not os.getenv(cfg["env_key"], ""):
+        fallback = os.getenv("DEFAULT_LLM_PROVIDER", "qwen")
+        logger.warning(f"{provider} 未配置 API Key，降级到 {fallback}")
+        provider = fallback
+
+    return get_llm(provider=provider, temperature=temperature, max_tokens=max_tokens)
 
 
 def parse_llm_json(content: str) -> dict:

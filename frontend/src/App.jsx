@@ -12,35 +12,41 @@ import PipelinePanel from './components/PipelinePanel';
 import AnalyticsPanel from './components/AnalyticsPanel';
 import HistoryPanel from './components/HistoryPanel';
 import HotSearchPanel from './components/HotSearchPanel';
+import StrategyPanel from './components/StrategyPanel';
+import GrowthLoopPanel from './components/GrowthLoopPanel';
 
 const NAV_ITEMS = [
-  { id: 'hot',       label: '实时热搜', icon: '🔥', group: '数据' },
-  { id: 'trends',    label: '趋势分析', icon: '📊', group: '数据' },
-  { id: 'generate',  label: '标题生成', icon: '✍️', group: '创作' },
-  { id: 'optimize',  label: '标题优化', icon: '🔧', group: '创作' },
-  { id: 'script',    label: '脚本生成', icon: '📝', group: '创作' },
-  { id: 'cover',     label: '封面设计', icon: '🎨', group: '创作' },
-  { id: 'feedback',  label: '评论分析', icon: '💬', group: '运营' },
-  { id: 'publish',   label: '发布策略', icon: '📡', group: '运营' },
-  { id: 'pipeline',  label: '全流程',   icon: '🚀', group: '运营' },
-  { id: 'analytics', label: '数据分析', icon: '📈', group: '增长' },
-  { id: 'history',   label: '历史记录', icon: '📋', group: '增长' },
+  { id: 'hot',         label: '实时热搜', icon: '🔥', group: '数据' },
+  { id: 'trends',      label: '趋势分析', icon: '📊', group: '数据' },
+  { id: 'strategy',    label: '策略中心', icon: '🧠', group: '策略' },
+  { id: 'generate',    label: '标题生成', icon: '✍️', group: '创作' },
+  { id: 'optimize',    label: '标题优化', icon: '🔧', group: '创作' },
+  { id: 'script',      label: '脚本生成', icon: '📝', group: '创作' },
+  { id: 'cover',       label: '封面设计', icon: '🎨', group: '创作' },
+  { id: 'feedback',    label: '评论分析', icon: '💬', group: '运营' },
+  { id: 'publish',     label: '发布策略', icon: '📡', group: '运营' },
+  { id: 'pipeline',    label: '全流程',   icon: '🚀', group: '运营' },
+  { id: 'analytics',   label: '数据分析', icon: '📈', group: '增长' },
+  { id: 'growth_loop', label: '增长闭环', icon: '🔄', group: '增长' },
+  { id: 'history',     label: '历史记录', icon: '📋', group: '增长' },
 ];
 
-const GROUPS = ['数据', '创作', '运营', '增长'];
+const GROUPS = ['数据', '策略', '创作', '运营', '增长'];
 
 const PANEL_MAP = {
-  hot:       HotSearchPanel,
-  generate:  TitleGenerator,
-  optimize:  TitleOptimizer,
-  trends:    TrendPanel,
-  feedback:  FeedbackPanel,
-  script:    ScriptPanel,
-  cover:     CoverPanel,
-  publish:   PublishPanel,
-  pipeline:  PipelinePanel,
-  analytics: AnalyticsPanel,
-  history:   HistoryPanel,
+  hot:         HotSearchPanel,
+  generate:    TitleGenerator,
+  optimize:    TitleOptimizer,
+  trends:      TrendPanel,
+  strategy:    StrategyPanel,
+  feedback:    FeedbackPanel,
+  script:      ScriptPanel,
+  cover:       CoverPanel,
+  publish:     PublishPanel,
+  pipeline:    PipelinePanel,
+  analytics:   AnalyticsPanel,
+  growth_loop: GrowthLoopPanel,
+  history:     HistoryPanel,
 };
 
 export default function App() {

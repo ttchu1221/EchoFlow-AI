@@ -43,3 +43,23 @@ export async function getHistory(limit = 20, offset = 0, type = null) {
   return request(url);
 }
 export async function deleteHistory(id) { return request(`/history/${id}`, { method: 'DELETE' }); }
+
+// ── v1.1: 策略 / 增长闭环 ───────────────────────────────
+export async function generateStrategy(data) { return request('/strategy', { method: 'POST', body: JSON.stringify(data) }); }
+export async function runGrowthLoop(data) { return request('/growth-loop', { method: 'POST', body: JSON.stringify(data) }); }
+export async function createGrowthMemory(data) { return request('/growth-memories', { method: 'POST', body: JSON.stringify(data) }); }
+export async function getGrowthMemories(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return request(`/growth-memories${qs ? '?' + qs : ''}`);
+}
+export async function getGrowthStats(creatorId = null) {
+  return request(`/growth-stats${creatorId ? '?creator_id=' + creatorId : ''}`);
+}
+export async function createStrategyMemory(data) { return request('/strategy-memories', { method: 'POST', body: JSON.stringify(data) }); }
+export async function getStrategyMemories(params = {}) {
+  const qs = new URLSearchParams(params).toString();
+  return request(`/strategy-memories${qs ? '?' + qs : ''}`);
+}
+export async function getActivePrompts(creatorId = null) {
+  return request(`/active-prompts${creatorId ? '?creator_id=' + creatorId : ''}`);
+}
