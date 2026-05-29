@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -85,6 +86,12 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"Redis 连接失败，将降级为无缓存模式: {e}")
 
+    # v1.3: 初始化平台管理器
+    global platform_manager
+    use_mock = os.getenv("PLATFORM_MOCK", "true").lower() == "true"
+    platform_manager = PlatformManager(use_mock=use_mock)
+    logger.info(f"平台管理器已初始化 (mock={use_mock})")
+
     yield
 
     from memory import close_mongo, close_redis
@@ -98,8 +105,8 @@ async def lifespan(app: FastAPI):
 # ── FastAPI 实例 ──────────────────────────────────────────
 app = FastAPI(
     title="EchoFlow AI",
-    description="AI 驱动的内容运营智能体 — v1.1 增长闭环版",
-    version="1.1.0",
+    description="AI 驱动的内容运营智能体 — v1.3 多平台对接版",
+    version="1.3.0",
     lifespan=lifespan,
 )
 
@@ -444,6 +451,117 @@ async def delete_history(record_id: str):
     if not await delete_record(record_id):
         raise HTTPException(status_code=404, detail="记录不存在")
     return {"message": "已删除"}
+
+
+# ══════════════════════════════════════════════════════════
+#  v1.3: 多平台发布 / 账号管理 / 数据回流
+# ══════════════════════════════════════════════════════════
+
+from platforms import PlatformManager
+from platforms.models import BindAccountRequest, PublishRequest
+
+platform_manager: PlatformManager | None = None
+
+
+# ── 发布 ──────────────────────────────────────────────────
+
+@app.post("/api/publish/execute")
+async def execute_publish(req: PublishRequest):
+    """执行发布到指定平台"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    try:
+        result = await platform_manager.publish(req)
+        return result.model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("发布失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/publish/history")
+async def get_publish_history(platform: str | None = None, limit: int = 20):
+    """获取发布历史"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    records = await platform_manager.get_publish_history(platform, limit)
+    return {"records": records, "count": len(records)}
+
+
+# ── 账号管理 ──────────────────────────────────────────────
+
+@app.get("/api/accounts")
+async def list_accounts():
+    """获取所有已绑定的平台账号"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    accounts = await platform_manager.get_all_accounts()
+    return {"accounts": [a.model_dump() for a in accounts]}
+
+
+@app.post("/api/accounts/bind")
+async def bind_account(req: BindAccountRequest):
+    """绑定平台账号（通过 Cookie）"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    try:
+        account = await platform_manager.bind_account(req)
+        return account.model_dump()
+    except Exception as e:
+        logger.exception("绑定账号失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/accounts/{platform}")
+async def unbind_account(platform: str):
+    """解绑平台账号"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    ok = await platform_manager.unbind_account(platform)
+    if not ok:
+        raise HTTPException(status_code=404, detail="账号不存在")
+    return {"message": "已解绑"}
+
+
+@app.get("/api/accounts/{platform}/status")
+async def check_account_status(platform: str):
+    """检查平台登录状态"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    try:
+        logged_in = await platform_manager.check_login(platform)
+        return {"platform": platform, "logged_in": logged_in}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ── 数据回流 ──────────────────────────────────────────────
+
+@app.post("/api/metrics/sync")
+async def sync_metrics():
+    """同步所有已发布内容的指标数据"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    try:
+        results = await platform_manager.sync_all_metrics()
+        return {"synced": len(results), "metrics": [m.model_dump() for m in results]}
+    except Exception as e:
+        logger.exception("同步指标失败")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/metrics/{post_id}")
+async def get_content_metrics(post_id: str, platform: str = "xiaohongshu"):
+    """获取指定内容的指标"""
+    if not platform_manager:
+        raise HTTPException(status_code=503, detail="平台管理器未初始化")
+    try:
+        metrics = await platform_manager.fetch_metrics(platform, post_id)
+        return metrics.model_dump()
+    except Exception as e:
+        logger.exception("获取指标失败")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ── 启动入口 ──────────────────────────────────────────────

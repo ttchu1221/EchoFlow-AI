@@ -49,7 +49,7 @@ async def seed():
     db = client[DB_NAME]
 
     # 清空旧数据
-    for col_name in ["history", "growth_memories", "strategy_memories", "profiles"]:
+    for col_name in ["history", "growth_memories", "strategy_memories", "profiles", "publish_records", "content_metrics"]:
         await db[col_name].delete_many({})
     print("🗑  已清空旧数据")
 
@@ -125,8 +125,57 @@ async def seed():
     await db["profiles"].insert_many(profile_docs)
     print(f"✅ profiles: {len(profile_docs)} 条")
 
+    # ── 5. 发布记录 (50 条) ──────────────────────────────
+    publish_docs = []
+    publish_platforms = ["xiaohongshu", "douyin", "weixin_video"]
+    for i in range(50):
+        plat = random.choice(publish_platforms)
+        status = random.choices(["success", "success", "success", "failed"], weights=[60, 20, 10, 10], k=1)[0]
+        post_id = str(uuid.uuid4())[:8] if status == "success" else None
+        topic = random.choice(TOPICS)
+        publish_docs.append({
+            "id": str(uuid.uuid4())[:8],
+            "platform": plat,
+            "status": status,
+            "title": topic,
+            "content": f"{topic} 的详细内容...",
+            "tags": random.sample(["AI", "自媒体", "效率", "工具", "教程", "分享", "干货"], 3),
+            "platform_post_id": post_id,
+            "platform_post_url": f"https://mock.{plat}.com/post/{post_id}" if post_id else None,
+            "error_message": "模拟发布失败" if status == "failed" else None,
+            "published_at": random_time_in_days(30) if status == "success" else None,
+            "created_at": random_time_in_days(30),
+        })
+    await db["publish_records"].insert_many(publish_docs)
+    print(f"✅ publish_records: {len(publish_docs)} 条")
+
+    # ── 6. 内容指标 (基于成功发布的记录) ─────────────────
+    metrics_docs = []
+    for doc in publish_docs:
+        if doc["status"] != "success" or not doc["platform_post_id"]:
+            continue
+        views = random.randint(200, 80000)
+        likes = int(views * random.uniform(0.02, 0.15))
+        comments = int(likes * random.uniform(0.05, 0.3))
+        shares = int(likes * random.uniform(0.02, 0.1))
+        saves = int(likes * random.uniform(0.1, 0.5))
+        metrics_docs.append({
+            "post_id": doc["platform_post_id"],
+            "platform": doc["platform"],
+            "views": views,
+            "likes": likes,
+            "comments": comments,
+            "shares": shares,
+            "saves": saves,
+            "engagement_rate": round((likes + comments + shares + saves) / max(views, 1) * 100, 2),
+            "fetched_at": random_time_in_days(7),
+        })
+    if metrics_docs:
+        await db["content_metrics"].insert_many(metrics_docs)
+    print(f"✅ content_metrics: {len(metrics_docs)} 条")
+
     # ── 验证 ─────────────────────────────────────────────
-    for col_name in ["history", "growth_memories", "strategy_memories", "profiles"]:
+    for col_name in ["history", "growth_memories", "strategy_memories", "profiles", "publish_records", "content_metrics"]:
         count = await db[col_name].count_documents({})
         print(f"   {col_name}: {count} 条")
 

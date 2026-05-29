@@ -14,6 +14,8 @@ import HistoryPanel from './components/HistoryPanel';
 import HotSearchPanel from './components/HotSearchPanel';
 import StrategyPanel from './components/StrategyPanel';
 import GrowthLoopPanel from './components/GrowthLoopPanel';
+import PublishExecPanel from './components/PublishExecPanel';
+import AccountsPanel from './components/AccountsPanel';
 
 const DashboardPage = lazy(() => import('./components/DashboardPage'));
 
@@ -28,29 +30,33 @@ const NAV_ITEMS = [
   { id: 'cover',       label: '封面设计', icon: '🎨', group: '创作' },
   { id: 'feedback',    label: '评论分析', icon: '💬', group: '运营' },
   { id: 'publish',     label: '发布策略', icon: '📡', group: '运营' },
-  { id: 'pipeline',    label: '全流程',   icon: '🚀', group: '运营' },
+  { id: 'publish_exec',label: '多平台发布', icon: '🚀', group: '运营' },
+  { id: 'pipeline',    label: '全流程',   icon: '⚡', group: '运营' },
   { id: 'analytics',   label: '数据分析', icon: '📈', group: '增长' },
   { id: 'growth_loop', label: '增长闭环', icon: '🔄', group: '增长' },
   { id: 'history',     label: '历史记录', icon: '📋', group: '增长' },
+  { id: 'accounts',    label: '账号管理', icon: '🔗', group: '设置' },
 ];
 
-const GROUPS = ['总览', '数据', '策略', '创作', '运营', '增长'];
+const GROUPS = ['总览', '数据', '策略', '创作', '运营', '增长', '设置'];
 
 const PANEL_MAP = {
-  dashboard:   DashboardPage,
-  hot:         HotSearchPanel,
-  generate:    TitleGenerator,
-  optimize:    TitleOptimizer,
-  trends:      TrendPanel,
-  strategy:    StrategyPanel,
-  feedback:    FeedbackPanel,
-  script:      ScriptPanel,
-  cover:       CoverPanel,
-  publish:     PublishPanel,
-  pipeline:    PipelinePanel,
-  analytics:   AnalyticsPanel,
-  growth_loop: GrowthLoopPanel,
-  history:     HistoryPanel,
+  dashboard:     DashboardPage,
+  hot:           HotSearchPanel,
+  generate:      TitleGenerator,
+  optimize:      TitleOptimizer,
+  trends:        TrendPanel,
+  strategy:      StrategyPanel,
+  feedback:      FeedbackPanel,
+  script:        ScriptPanel,
+  cover:         CoverPanel,
+  publish:       PublishPanel,
+  publish_exec:  PublishExecPanel,
+  pipeline:      PipelinePanel,
+  analytics:     AnalyticsPanel,
+  growth_loop:   GrowthLoopPanel,
+  history:       HistoryPanel,
+  accounts:      AccountsPanel,
 };
 
 export default function App() {

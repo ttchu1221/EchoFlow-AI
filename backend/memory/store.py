@@ -421,6 +421,30 @@ async def get_dashboard_stats() -> dict:
     if not top_content:
         top_content = [{"rank": 1, "title": "暂无数据", "platform": "-", "heat": 0, "trend": "up"}]
 
+    # ── v1.3: 发布统计 ──────────────────────────────────
+    total_published = await _col("publish_records").count_documents({})
+    success_published = await _col("publish_records").count_documents({"status": "success"})
+    failed_published = await _col("publish_records").count_documents({"status": "failed"})
+
+    publish_platform_pipeline = [
+        {"$group": {"_id": "$platform", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+    ]
+    pub_plat_cursor = _col("publish_records").aggregate(publish_platform_pipeline)
+    pub_plat_results = await pub_plat_cursor.to_list(length=10)
+    publish_by_platform = [
+        {"name": platform_map.get(p["_id"], p["_id"] or "未知"), "value": p["count"]}
+        for p in pub_plat_results if p["_id"]
+    ]
+
+    publish_stats = {
+        "total": total_published,
+        "success": success_published,
+        "failed": failed_published,
+        "successRate": round(success_published / max(total_published, 1) * 100, 1),
+        "byPlatform": publish_by_platform,
+    }
+
     return {
         "kpis": kpis,
         "userGrowth": user_growth,
@@ -431,4 +455,5 @@ async def get_dashboard_stats() -> dict:
         "funnel": funnel,
         "activityFeed": activity_feed,
         "topContent": top_content,
+        "publishStats": publish_stats,
     }
