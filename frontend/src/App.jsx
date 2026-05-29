@@ -71,8 +71,20 @@ export default function App() {
           open={sidebarOpen}
           onToggle={() => setSidebarOpen(!sidebarOpen)}
         />
-        {/* 大屏全屏展示 */}
-        <div className="flex-1 min-w-0 overflow-auto">
+        {/* 大屏全屏展示，左侧留出侧边栏空间 */}
+        <div className={`flex-1 min-w-0 overflow-auto transition-[padding] duration-300 ${sidebarOpen ? 'pl-64' : 'pl-0'}`}>
+          {/* 侧边栏收起时的展开按钮 */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-panel-50/80 backdrop-blur-sm border border-panel-border text-txt-muted hover:text-txt-primary hover:bg-panel-100 transition-colors"
+              title="展开侧边栏"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+              </svg>
+            </button>
+          )}
           <Suspense fallback={
             <div className="flex items-center justify-center h-screen bg-panel">
               <div className="text-center">

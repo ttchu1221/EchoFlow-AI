@@ -93,20 +93,18 @@ export default function Sidebar({ items, groups, active, onSelect, open, onToggl
         </nav>
 
         {/* 折叠按钮 */}
-        {!isDashboard && (
-          <div className="hidden lg:flex items-center justify-center h-12 border-t border-panel-border">
-            <button
-              onClick={onToggle}
-              className="p-1.5 rounded-lg text-txt-muted hover:text-txt-primary hover:bg-panel-100 transition-colors"
-            >
-              {open ? (
-                <ChevronLeftIcon className="w-4 h-4" />
-              ) : (
-                <ChevronRightIcon className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        )}
+        <div className="hidden lg:flex items-center justify-center h-12 border-t border-panel-border">
+          <button
+            onClick={onToggle}
+            className="p-1.5 rounded-lg text-txt-muted hover:text-txt-primary hover:bg-panel-100 transition-colors"
+          >
+            {open ? (
+              <ChevronLeftIcon className="w-4 h-4" />
+            ) : (
+              <ChevronRightIcon className="w-4 h-4" />
+            )}
+          </button>
+        </div>
       </aside>
     </>
   );
