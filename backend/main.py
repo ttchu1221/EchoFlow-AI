@@ -508,6 +508,8 @@ async def bind_account(req: BindAccountRequest):
     try:
         account = await platform_manager.bind_account(req)
         return account.model_dump()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.exception("绑定账号失败")
         raise HTTPException(status_code=500, detail=str(e))
