@@ -384,6 +384,8 @@ async def fetch_hot_search(platform: str, limit: int = 30) -> list[dict]:
                     t.cancel()
 
     if results:
+        # 按热度降序排序
+        results.sort(key=lambda x: x.get("heat_score", 0), reverse=True)
         _cache.set(cache_key, results)
         logger.info(f"[数据源] {platform} 最终获取 {len(results)} 条热搜")
     else:
