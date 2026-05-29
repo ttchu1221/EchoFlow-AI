@@ -281,29 +281,46 @@ function DashCard({ children, className = '', glow = false }) {
 /* ═══════════════════════════════════════════════════
  *  主页面
  * ═══════════════════════════════════════════════════ */
+
+const EMPTY_DATA = {
+  kpis: [],
+  userGrowth: { months: [], data: [] },
+  platformDistribution: [],
+  contentPerformance: { categories: [], views: [], likes: [], shares: [] },
+  engagementRadar: { indicators: [], values: [] },
+  realtimeData: [],
+  funnel: [],
+  activityFeed: [],
+  topContent: [],
+};
+
+async function fetchDashboardData() {
+  const res = await fetch('/api/dashboard');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
 export default function DashboardPage() {
-  const [data, setData] = useState(generateMockData);
+  const [data, setData] = useState(EMPTY_DATA);
+  const [loading, setLoading] = useState(true);
   const [time, setTime] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef(null);
 
-  /* 时钟 */
+  /* 拉取真实数据 */
   useEffect(() => {
-    const timer = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    let cancelled = false;
+    fetchDashboardData()
+      .then(d => { if (!cancelled) { setData(d); setLoading(false); } })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
-  /* 模拟实时数据刷新 */
+  /* 定时刷新（30 秒） */
   useEffect(() => {
     const timer = setInterval(() => {
-      setData(prev => ({
-        ...prev,
-        kpis: prev.kpis.map(k => ({
-          ...k,
-          value: k.value + (Math.random() - 0.4) * k.value * 0.001,
-        })),
-      }));
-    }, 5000);
+      fetchDashboardData().then(setData).catch(() => {});
+    }, 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -316,6 +333,12 @@ export default function DashboardPage() {
       document.exitFullscreen();
       setIsFullscreen(false);
     }
+  }, []);
+
+  /* 时钟 */
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   /* ── 图表配置 ──────────────────────────────── */
@@ -528,6 +551,16 @@ export default function DashboardPage() {
 
   return (
     <div ref={containerRef} className="relative w-full min-h-screen bg-panel dashboard-container overflow-auto">
+      {/* ── 加载状态 ──────────────────────────────── */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-panel/80 backdrop-blur-sm">
+          <div className="text-center">
+            <div className="inline-block w-10 h-10 border-4 border-brand-500/30 border-t-brand-400 rounded-full animate-spin mb-4" />
+            <p className="text-txt-secondary text-sm">正在加载真实数据...</p>
+          </div>
+        </div>
+      )}
+
       {/* ── 3D 背景场景 ───────────────────────────── */}
       <div className="fixed inset-0 z-0 pointer-events-none">
         <Suspense fallback={null}>

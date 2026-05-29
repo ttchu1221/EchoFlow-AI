@@ -18,6 +18,8 @@ from memory.store import (
     # v1.1
     save_growth_memory, get_growth_memories, get_growth_stats,
     save_strategy_memory, get_strategy_memories, get_active_prompts,
+    # v1.2
+    get_dashboard_stats,
 )
 from models.schemas import (
     # Phase 1
@@ -126,6 +128,16 @@ async def root():
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/api/dashboard")
+async def get_dashboard():
+    """数据大屏 — 聚合全系统统计数据"""
+    try:
+        return await get_dashboard_stats()
+    except Exception as e:
+        logger.exception("获取大屏数据失败")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/platforms")
