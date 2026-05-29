@@ -1,0 +1,87 @@
+{
+  "xiaohongshu": {
+    "name": "小红书",
+    "title_rules": {
+      "max_length": 20,
+      "emoji_style": "rich",
+      "hook_types": ["数字型", "悬念型", "对比型", "痛点型", "干货型"],
+      "tone": "亲切、种草感、闺蜜式",
+      "forbidden": ["最", "第一", "绝对"],
+      "best_practices": [
+        "使用数字增加可信度",
+        "加入emoji增加视觉吸引力",
+        "制造信息差或认知冲突",
+        "用口语化表达拉近距离"
+      ]
+    },
+    "content_style": "图文笔记、种草分享、教程攻略"
+  },
+  "douyin": {
+    "name": "抖音",
+    "title_rules": {
+      "max_length": 30,
+      "emoji_style": "moderate",
+      "hook_types": ["冲突型", "悬念型", "反常识型", "情绪型", "热点型"],
+      "tone": "直接、有冲击力、口语化",
+      "forbidden": [],
+      "best_practices": [
+        "前3秒必须抓住注意力",
+        "制造冲突或悬念",
+        "使用口语化短句",
+        "蹭热点关键词"
+      ]
+    },
+    "content_style": "短视频、剧情、知识分享"
+  },
+  "bilibili": {
+    "name": "B站",
+    "title_rules": {
+      "max_length": 40,
+      "emoji_style": "light",
+      "hook_types": ["干货型", "盘点型", "教程型", "吐槽型", "科普型"],
+      "tone": "有趣、深度、年轻人语感",
+      "forbidden": [],
+      "best_practices": [
+        "标题要有信息量",
+        "可以用括号补充说明",
+        "适当使用网络梗",
+        "突出干货价值"
+      ]
+    },
+    "content_style": "长视频、知识区、生活区"
+  },
+  "youtube_shorts": {
+    "name": "YouTube Shorts",
+    "title_rules": {
+      "max_length": 100,
+      "emoji_style": "moderate",
+      "hook_types": ["how-to型", "list型", "shocking型", "question型"],
+      "tone": "engaging, curiosity-driven",
+      "forbidden": ["clickbait"],
+      "best_practices": [
+        "Use numbers and specifics",
+        "Create curiosity gap",
+        "Keep it concise",
+        "Front-load keywords"
+      ]
+    },
+    "content_style": "Short-form video, tutorials, entertainment"
+  },
+  "weibo": {
+    "name": "微博",
+    "title_rules": {
+      "max_length": 30,
+      "emoji_style": "rich",
+      "hook_types": ["热点型", "情绪型", "争议型", "故事型"],
+      "tone": "社交感、话题性、简短有力",
+      "forbidden": [],
+      "best_practices": [
+        "蹭热搜话题",
+        "制造话题讨论度",
+        "用#话题标签#增加曝光",
+        "简短有力的表达"
+      ]
+    },
+    "content_style": "图文、短内容、话题讨论"
+  }
+}
