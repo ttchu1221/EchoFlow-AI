@@ -1,12 +1,34 @@
 # EchoFlow AI 🚀
 
-> AI Native Content Growth Operating System — v1.1 增长闭环版
+> AI Native Content Growth Operating System — v1.2 数据大屏版
 
 EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的核心不是"帮你写一篇内容"，而是**"帮你运营一个账号"**。
 
 **核心循环**：生成 → 发布 → 分析 → 优化 → 增长
 
-## ✨ v1.1 新增功能
+## ✨ v1.2 新增功能
+
+### 🎬 3D 数据大屏（沉浸式可视化）
+| 功能 | 说明 |
+|------|------|
+| Three.js 3D 场景 | 粒子场 + 发光二十面体 + 轨道环 + 数据柱 + 星空背景 |
+| 6 大 KPI 卡片 | 翻牌数字动画，实时数据脉冲效果 |
+| 7 张交互图表 | ECharts 6.1 驱动，统一 neon 暗色主题 |
+| 全屏模式 | 无干扰数据大屏体验 |
+| 实时活动流 | 自动轮播系统动态 |
+
+### 📊 大屏包含的图表
+| 图表 | 类型 | 说明 |
+|------|------|------|
+| 用户增长趋势 | 面积图 | 抖音/小红书/B站 三平台近 7 天 |
+| 平台粉丝分布 | 环形图 | 各平台粉丝占比 |
+| 内容表现对比 | 分组柱状图 | 播放/点赞/评论/分享 |
+| 互动率雷达 | 雷达图 | 当前 vs 上期对比 |
+| 内容转化漏斗 | 条形图 | 曝光→播放→完播→点赞→关注 |
+| 24h 活跃时段 | 折线图 | 用户活跃热力分布 |
+| TOP5 爆款内容 | 排行表 | 实时排序 |
+
+## ✨ v1.1 功能
 
 ### 🧠 策略智能体（核心大脑）
 | 功能 | 说明 |
@@ -96,7 +118,7 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 │  用户记忆 │ 增长记忆 │ 策略记忆 │ 工作流记忆          │
 ├─────────────────────────────────────────────────────┤
 │              Data Layer                              │
-│  MCP Servers │ 爬虫(三级降级) │ TTLCache              │
+│  MongoDB(持久化) │ Redis(缓存) │ MCP Servers │ 爬虫   │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -109,9 +131,38 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 | 智能体 | 10 个专业智能体 + LangGraph 工作流 |
 | LLM | Qwen / DeepSeek / GPT / Mimo（智能路由） |
 | 数据 | MCP 协议 + 爬虫（B站/抖音/小红书/微博） |
-| 存储 | JSON 文件（轻量，可升级 MongoDB/Redis） |
+| 存储 | MongoDB（持久化）+ Redis（缓存） |
 
 ## 🚀 快速开始
+
+### 0. 基础服务（MongoDB & Redis）
+
+系统使用 MongoDB 存储数据，Redis 做缓存，启动前需确保两个服务正在运行。
+
+> **前提**：已安装 Homebrew，MongoDB 和 Redis 均通过 Homebrew 管理。
+
+```bash
+# ── 首次安装 ──────────────────────────────────
+brew install redis
+# MongoDB 如果未安装：brew install mongodb-community
+
+# ── 启动服务 ──────────────────────────────────
+brew services start redis
+brew services start mongodb-community
+
+# ── 关闭服务（不用时关闭，避免占用资源）────────
+brew services stop redis
+brew services stop mongodb-community
+
+# ── 查看状态 ──────────────────────────────────
+brew services list | grep -E "redis|mongo"
+
+# ── 验证连接 ──────────────────────────────────
+redis-cli ping          # 应返回 PONG
+mongosh --eval "db.runCommand({ping:1})" --quiet  # 应返回 { ok: 1 }
+```
+
+> 💡 **提示**：不需要时记得 `brew services stop` 关闭，不会一直占后台资源。
 
 ### 1. 后端
 

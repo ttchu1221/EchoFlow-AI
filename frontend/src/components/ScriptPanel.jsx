@@ -30,10 +30,10 @@ export default function ScriptPanel() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">智能脚本生成</h2>
-        <p className="text-sm text-gray-500 mt-1">一键生成完整的内容脚本，包含开头、正文、结尾和字幕建议</p>
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center gap-3">
+        <h2 className="text-2xl font-bold text-txt-bright"><span className="w-1 h-6 rounded-full bg-gradient-to-b from-blue-400 to-brand-400" />智能脚本生成</h2>
+        <p className="text-sm text-txt-muted mt-1">一键生成完整的内容脚本，包含开头、正文、结尾和字幕建议</p>
       </div>
 
       <div className="card p-6 space-y-5">

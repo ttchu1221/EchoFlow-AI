@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import TitleGenerator from './components/TitleGenerator';
@@ -15,7 +15,10 @@ import HotSearchPanel from './components/HotSearchPanel';
 import StrategyPanel from './components/StrategyPanel';
 import GrowthLoopPanel from './components/GrowthLoopPanel';
 
+const DashboardPage = lazy(() => import('./components/DashboardPage'));
+
 const NAV_ITEMS = [
+  { id: 'dashboard',   label: '数据大屏', icon: '🌐', group: '总览' },
   { id: 'hot',         label: '实时热搜', icon: '🔥', group: '数据' },
   { id: 'trends',      label: '趋势分析', icon: '📊', group: '数据' },
   { id: 'strategy',    label: '策略中心', icon: '🧠', group: '策略' },
@@ -31,9 +34,10 @@ const NAV_ITEMS = [
   { id: 'history',     label: '历史记录', icon: '📋', group: '增长' },
 ];
 
-const GROUPS = ['数据', '策略', '创作', '运营', '增长'];
+const GROUPS = ['总览', '数据', '策略', '创作', '运营', '增长'];
 
 const PANEL_MAP = {
+  dashboard:   DashboardPage,
   hot:         HotSearchPanel,
   generate:    TitleGenerator,
   optimize:    TitleOptimizer,
@@ -50,12 +54,42 @@ const PANEL_MAP = {
 };
 
 export default function App() {
-  const [active, setActive] = useState('hot');
+  const [active, setActive] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const Panel = PANEL_MAP[active] || TitleGenerator;
+  const Panel = PANEL_MAP[active] || DashboardPage;
+  const isDashboard = active === 'dashboard';
+
+  if (isDashboard) {
+    return (
+      <div className="flex h-screen overflow-hidden">
+        {/* 侧边栏叠加在大屏上 */}
+        <Sidebar
+          items={NAV_ITEMS}
+          groups={GROUPS}
+          active={active}
+          onSelect={setActive}
+          open={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+        />
+        {/* 大屏全屏展示 */}
+        <div className="flex-1 min-w-0 overflow-auto">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-screen bg-panel">
+              <div className="text-center">
+                <div className="inline-block w-10 h-10 border-4 border-brand-500/30 border-t-brand-400 rounded-full animate-spin mb-4" />
+                <p className="text-txt-secondary text-sm">数据大屏加载中...</p>
+              </div>
+            </div>
+          }>
+            <DashboardPage />
+          </Suspense>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface-50">
+    <div className="flex h-screen overflow-hidden bg-panel grid-bg">
       {/* 侧边栏 */}
       <Sidebar
         items={NAV_ITEMS}
@@ -70,7 +104,7 @@ export default function App() {
       <div className="flex flex-1 flex-col min-w-0">
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} />
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto animate-fade-in">
+          <div className="max-w-7xl mx-auto">
             <Panel />
           </div>
         </main>

@@ -71,7 +71,23 @@ async def lifespan(app: FastAPI):
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         platform_config = json.load(f)
     logger.info(f"平台配置已加载: {list(platform_config.keys())}")
+
+    # v1.2: 初始化 MongoDB + Redis
+    from memory import init_mongo, init_redis, close_mongo, close_redis
+    try:
+        await init_mongo()
+    except Exception as e:
+        logger.warning(f"MongoDB 连接失败，将降级为无数据库模式: {e}")
+    try:
+        await init_redis()
+    except Exception as e:
+        logger.warning(f"Redis 连接失败，将降级为无缓存模式: {e}")
+
     yield
+
+    from memory import close_mongo, close_redis
+    await close_redis()
+    await close_mongo()
     from mcp_clients.manager import get_mcp_manager
     await get_mcp_manager().shutdown()
     logger.info("EchoFlow AI 关闭")
