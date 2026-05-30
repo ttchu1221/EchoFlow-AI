@@ -158,7 +158,7 @@ async def get_memory_insights(
     from langchain_core.messages import SystemMessage, HumanMessage
 
     response = await llm.ainvoke([
-        SystemMessage(content="你是一位内容策略顾问。基于创作者的历史数据，总结其内容风格特征和优化建议。以 JSON 格式输出：{\"style_summary\": \"风格总结\", \"top_patterns\": [\"模式1\"], \"recommendations\": [\"建议1\"]}"),
+        SystemMessage(content="你是一位内容策略顾问。基于创作者的历史数据，总结其内容风格特征和优化建议。所有文本内容必须用中文输出。以 JSON 格式输出：{\"style_summary\": \"风格总结\", \"top_patterns\": [\"模式1\"], \"recommendations\": [\"建议1\"]}"),
         HumanMessage(content=f"以下是该创作者的近期内容记录：\n{memory_text}\n\n请分析并给出洞察。"),
     ])
 

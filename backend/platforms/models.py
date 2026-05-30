@@ -80,8 +80,10 @@ class PlatformAccount(BaseModel):
 class BindAccountRequest(BaseModel):
     """绑定账号请求"""
     platform: PlatformType
-    cookies: str = Field(description="从浏览器复制的 Cookie 字符串")
+    cookies: str = Field(description="从浏览器复制的 Cookie 字符串", alias="cookie")
     nickname: str = ""
+
+    model_config = {"populate_by_name": True}
 
 
 class LoginQRRequest(BaseModel):

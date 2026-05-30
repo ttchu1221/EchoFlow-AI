@@ -13,7 +13,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_smart_llm, parse_llm_json
+from agents.base import get_smart_llm, parse_llm_json, call_llm_with_retry
 from memory.store import (
     get_growth_memories,
     get_growth_stats,
@@ -64,6 +64,7 @@ ANALYSIS_PROMPT = """你是一位增长优化专家，擅长从数据中提取�
 ```
 
 target_agent 可选值: topic / script / hook / cover / publish / trend
+⚠️ 重要：所有文本内容（诊断、建议、行动计划等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -84,6 +85,7 @@ async def run_growth_loop(
     llm = get_smart_llm(
         task_type="analysis",
         override_provider=req.llm_provider,
+        max_tokens=4096,
     )
 
     platform_info = platform_config.get(req.platform.value, {})
@@ -147,12 +149,25 @@ async def run_growth_loop(
 
     logger.info(f"增长闭环: 分析创作者 {req.creator_id} 的表现并生成优化方案")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=ANALYSIS_PROMPT),
         HumanMessage(content=user_prompt),
     ])
 
-    data = parse_llm_json(response.content)
+    # 容错解析：JSON 解析失败时返回降级响应
+    try:
+        data = parse_llm_json(response.content)
+    except ValueError as e:
+        logger.warning(f"增长闭环 JSON 解析失败，返回降级响应: {e}")
+        return GrowthLoopResponse(
+            creator_id=req.creator_id,
+            performance_diagnosis="AI 分析暂时不可用，请稍后重试。",
+            strategy_adjustments=["保持当前策略稳定运行，等待 AI 分析恢复后获取精准优化建议。"],
+            prompt_optimizations=[],
+            next_actions=["稍后重新触发增长闭环分析"],
+            confidence_score=0.3,
+            request_id="",
+        )
 
     # 解析 Prompt 优化建议
     prompt_opts = []

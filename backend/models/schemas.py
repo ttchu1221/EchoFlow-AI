@@ -72,7 +72,7 @@ class TitleGenerateResponse(BaseModel):
     platform: str
     titles: list[TitleItem]
     improvement_summary: str = Field(default="", description="优化总结")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -81,7 +81,7 @@ class OptimizeResponse(BaseModel):
     original_title: str
     optimized_options: list[OptimizedTitle]
     tips: list[str] = Field(default_factory=list, description="优化建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -128,7 +128,7 @@ class TrendAnalyzeResponse(BaseModel):
     trending_topics: list[TrendTopic]
     viral_patterns: list[TrendPattern]
     audience_insights: list[AudienceInsight]
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -166,7 +166,7 @@ class FeedbackAnalyzeResponse(BaseModel):
     sentiment_breakdown: list[SentimentBreakdown]
     key_themes: list[KeyTheme]
     suggestions: list[str] = Field(default_factory=list, description="AI 优化建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -207,7 +207,7 @@ class ScriptGenerateResponse(BaseModel):
     subtitles: list[str] = Field(default_factory=list, description="字幕建议")
     estimated_duration: str = Field(default="", description="预估时长")
     tips: list[str] = Field(default_factory=list, description="拍摄/制作建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -240,7 +240,7 @@ class CoverGenerateResponse(BaseModel):
     platform: str
     cover_texts: list[CoverOption]
     design_tips: list[str] = Field(default_factory=list, description="设计建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -277,7 +277,7 @@ class PublishPlanResponse(BaseModel):
     description_template: str = Field(default="", description="描述文案模板")
     promotion_strategy: PromotionStrategy
     platform_tips: list[str] = Field(default_factory=list, description="平台注意事项")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -327,7 +327,7 @@ class AnalyticsResponse(BaseModel):
     metrics: AnalyticsMetrics
     diagnosis: str = Field(default="", description="AI 诊断")
     suggestions: list[GrowthSuggestion]
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -397,7 +397,7 @@ class FullPipelineResponse(BaseModel):
     script: ScriptGenerateResponse
     cover: CoverGenerateResponse
     publish: PublishPlanResponse
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 

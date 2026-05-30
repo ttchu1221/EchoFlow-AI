@@ -11,7 +11,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_smart_llm, parse_llm_json
+from agents.base import get_smart_llm, parse_llm_json, call_llm_with_retry
 from memory.store import get_growth_stats, get_growth_memories, get_strategy_memories
 from models.schemas import (
     ContentDirection,
@@ -76,6 +76,7 @@ SYSTEM_PROMPT = """你是一位顶级内容增长策略师，擅长为内容创�
   ]
 }
 ```
+⚠️ 重要：所有文本内容（阶段描述、策略建议、里程碑等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -88,6 +89,7 @@ async def generate_strategy(
     llm = get_smart_llm(
         task_type="reasoning",
         override_provider=req.llm_provider,
+        max_tokens=8192,
     )
 
     platform_info = platform_config.get(req.platform.value, {})
@@ -142,12 +144,17 @@ async def generate_strategy(
 
     logger.info(f"策略智能体: 为「{req.niche}」制定增长策略 | 目标: {req.growth_goal}")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])
 
-    data = parse_llm_json(response.content)
+    # 容错解析：JSON 解析失败时返回降级响应
+    try:
+        data = parse_llm_json(response.content)
+    except ValueError as e:
+        logger.warning(f"策略智能体 JSON 解析失败，返回降级响应: {e}")
+        return _build_fallback_strategy(req)
 
     # 解析阶段评估
     stage_data = data.get("creator_stage", {})
@@ -187,5 +194,43 @@ async def generate_strategy(
         engagement_tactics=data.get("engagement_tactics", []),
         growth_milestones=milestones,
         risk_alerts=data.get("risk_alerts", []),
+        request_id="",
+    )
+
+
+def _build_fallback_strategy(req: StrategyRequest) -> StrategyResponse:
+    """JSON 解析失败时的降级策略响应"""
+    return StrategyResponse(
+        growth_goal=req.growth_goal,
+        platform=req.platform.value,
+        creator_stage=CreatorStage(
+            stage="待分析",
+            score=50.0,
+            description="AI 分析暂时不可用，请稍后重试以获取精确的阶段评估。",
+        ),
+        content_directions=[
+            ContentDirection(
+                direction="持续产出优质内容",
+                description="保持稳定的更新频率，聚焦领域内的高热度话题。",
+                priority="高",
+                expected_impact="稳步提升曝光和互动",
+            ),
+        ],
+        posting_strategy={
+            "frequency": "每日1-2次",
+            "best_times": ["12:00-13:00", "20:00-22:00"],
+            "content_rhythm": "工作日干货+周末轻松内容",
+        },
+        hook_strategies=["使用数字型标题吸引点击", "前3秒展示核心价值"],
+        engagement_tactics=["评论区主动引导互动", "设置投票增加参与感"],
+        growth_milestones=[
+            GrowthMilestone(
+                milestone="短期目标",
+                target_value="持续输出",
+                deadline=req.time_frame,
+                action_items=["保持每日更新", "关注热点话题"],
+            ),
+        ],
+        risk_alerts=["AI 分析暂不可用，建议稍后重新生成策略以获取更精准的建议。"],
         request_id="",
     )

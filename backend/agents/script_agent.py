@@ -7,7 +7,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import (
     ScriptGenerateRequest,
     ScriptGenerateResponse,
@@ -53,6 +53,7 @@ SYSTEM_PROMPT = """你是一位顶级内容脚本编剧，擅长为各平台创�
 ```
 
 section_type 可选值: hook（钩子）/ body（主体）/ transition（转场）/ cta（行动号召）
+⚠️ 重要：所有文本内容（脚本文案、字幕、建议等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -102,7 +103,7 @@ async def generate_script(
 
     logger.info(f"脚本生成智能体: 为「{req.title}」生成 {content_type_label} 脚本")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])

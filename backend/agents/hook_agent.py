@@ -7,7 +7,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import OptimizeRequest, OptimizedTitle
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ SYSTEM_PROMPT = """你是一位标题优化专家，擅长将普通标题改造�
 }
 ```
 
+⚠️ 重要：所有文本内容（标题、改动点、理由、建议等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -76,7 +77,7 @@ async def optimize_title(
 
     logger.info(f"钩子优化智能体: 优化标题「{req.title}」")
 
-    response = await llm.ainvoke([system_msg, user_msg])
+    response = await call_llm_with_retry(llm, [system_msg, user_msg])
     content = response.content.strip()
 
     return _parse_optimize_response(content, req.optimize_count)

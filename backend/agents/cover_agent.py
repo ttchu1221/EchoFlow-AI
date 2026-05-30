@@ -7,7 +7,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import (
     CoverGenerateRequest,
     CoverGenerateResponse,
@@ -51,6 +51,7 @@ SYSTEM_PROMPT = """你是一位封面设计专家，精通各平台的视觉营�
 }
 ```
 
+⚠️ 重要：所有文本内容（封面文案、设计建议等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -88,7 +89,7 @@ async def generate_covers(
 
     logger.info(f"封面文案智能体: 为「{req.title}」生成 {req.count} 个封面方案")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])

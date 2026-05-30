@@ -1,6 +1,11 @@
 import { Bars3Icon } from '@heroicons/react/24/outline';
+import { useState } from 'react';
 
-export default function Header({ onMenuToggle, sidebarOpen }) {
+export default function Header({ onMenuToggle, sidebarOpen, user, onLogout }) {
+  const [showMenu, setShowMenu] = useState(false);
+
+  const roleLabels = { admin: '管理员', editor: '编辑', reviewer: '审核员', viewer: '只读' };
+
   return (
     <header className="sticky top-0 z-10 flex items-center h-16 px-6 bg-panel/80 backdrop-blur-xl border-b border-panel-border">
       <button
@@ -29,9 +34,41 @@ export default function Header({ onMenuToggle, sidebarOpen }) {
           <span className="text-xs text-txt-muted">DB</span>
           <span className="text-xs font-medium text-emerald-400">MongoDB</span>
         </div>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-semibold shadow-neon-cyan">
-          AI
-        </div>
+
+        {/* 用户菜单 */}
+        {user ? (
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu(!showMenu)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-panel-100 border border-panel-border hover:border-brand-500/30 transition-colors"
+            >
+              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-semibold">
+                {(user.display_name || user.username || '?')[0]}
+              </div>
+              <span className="text-xs text-txt-primary hidden sm:block">{user.display_name || user.username}</span>
+              <span className="text-xs text-txt-muted hidden sm:block">({roleLabels[user.role] || user.role})</span>
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-full mt-2 w-48 bg-panel-50 border border-panel-border rounded-xl shadow-xl overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-panel-border">
+                  <div className="text-sm text-txt-primary font-medium">{user.display_name || user.username}</div>
+                  <div className="text-xs text-txt-muted">@{user.username}</div>
+                </div>
+                <button
+                  onClick={() => { setShowMenu(false); onLogout?.(); }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                >
+                  退出登录
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-semibold shadow-neon-cyan">
+            AI
+          </div>
+        )}
       </div>
     </header>
   );

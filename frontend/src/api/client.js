@@ -63,3 +63,10 @@ export async function getStrategyMemories(params = {}) {
 export async function getActivePrompts(creatorId = null) {
   return request(`/active-prompts${creatorId ? '?creator_id=' + creatorId : ''}`);
 }
+
+// ── v1.4: 每日热点总结 ──────────────────────────────────
+export async function generateDailyDigest(data = {}) { return request('/daily-digest/generate', { method: 'POST', body: JSON.stringify(data) }); }
+export async function getTodayDigest() { return request('/daily-digest/today'); }
+export async function getDigestByDate(date) { return request(`/daily-digest/${date}`); }
+export async function listDigests(days = 30) { return request(`/daily-digest/list?days=${days}`); }
+export async function getObsidianContent(date) { return fetch(`${API_BASE}/daily-digest/obsidian/${date}`).then(r => r.text()); }

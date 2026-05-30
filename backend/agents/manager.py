@@ -36,6 +36,8 @@ from models.schemas import (
     CoverGenerateResponse,
     PublishPlanRequest,
     PublishPlanResponse,
+    PublishTime,
+    PromotionStrategy,
     FullPipelineRequest,
     FullPipelineResponse,
     # Phase 4
@@ -218,15 +220,24 @@ async def run_full_pipeline(
         )
     if isinstance(script_resp, BaseException):
         logger.warning(f"脚本生成失败: {script_resp}")
-        script_resp = ScriptGenerateResponse(ending="", subtitles=[])
+        script_resp = ScriptGenerateResponse(
+            title=best_title, platform=req.platform.value,
+            content_type=req.content_type, sections=[],
+            ending="", subtitles=[],
+        )
     if isinstance(cover_resp, BaseException):
         logger.warning(f"封面生成失败: {cover_resp}")
-        cover_resp = CoverGenerateResponse(cover_texts=[], design_tips=[])
+        cover_resp = CoverGenerateResponse(
+            title=best_title, platform=req.platform.value,
+            cover_texts=[], design_tips=[],
+        )
     if isinstance(publish_resp, BaseException):
         logger.warning(f"发布策略失败: {publish_resp}")
         publish_resp = PublishPlanResponse(
-            publish_time={"best_time": "", "reason": ""},
-            hashtags=[], promotion_strategy=[], platform_tips=[],
+            title=best_title, platform=req.platform.value,
+            publish_time=PublishTime(), hashtags=[],
+            description_template="", promotion_strategy=PromotionStrategy(),
+            platform_tips=[],
         )
 
     trends_resp.request_id = request_id
