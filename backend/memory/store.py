@@ -238,10 +238,23 @@ async def get_dashboard_stats() -> dict:
     sorted_months = sorted(month_data.keys())[-6:] if month_data else []
     type_names = sorted(set(t for m in month_data.values() for t in m.keys()))
 
+    # 类型名称中文映射
+    type_label_map = {
+        "generate": "标题生成", "optimize": "标题优化",
+        "trend_analysis": "趋势分析", "trend": "趋势分析",
+        "feedback_analysis": "评论分析", "feedback": "评论分析",
+        "script_generation": "脚本生成", "script": "脚本生成",
+        "cover_design": "封面设计", "cover": "封面设计",
+        "publish_strategy": "发布策略", "publish": "发布策略",
+        "full_pipeline": "全流程", "pipeline": "全流程",
+        "analytics": "数据分析",
+        "strategy": "策略生成",
+    }
+
     user_growth = {
         "months": [m.split("-")[1] + "月" for m in sorted_months],
         "data": [
-            {"name": t, "data": [month_data[m].get(t, 0) for m in sorted_months]}
+            {"name": type_label_map.get(t, t), "data": [month_data[m].get(t, 0) for m in sorted_months]}
             for t in type_names
         ],
     }

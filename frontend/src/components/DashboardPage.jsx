@@ -390,7 +390,7 @@ export default function DashboardPage() {
   const platformPieOption = useMemo(() => ({
     series: [{
       type: 'pie',
-      radius: ['45%', '72%'],
+      radius: ['40%', '68%'],
       center: ['50%', '50%'],
       data: data.platformDistribution.map((d, i) => ({
         ...d,
@@ -399,9 +399,16 @@ export default function DashboardPage() {
       label: {
         show: true,
         color: '#94a3b8',
-        fontSize: 10,
+        fontSize: 11,
         fontFamily: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
         formatter: '{b}\n{d}%',
+        overflow: 'truncate',
+        ellipsis: '...',
+      },
+      labelLine: {
+        show: true,
+        lineStyle: { color: 'rgba(148, 163, 184, 0.4)', width: 1 },
+        smooth: true,
       },
       emphasis: {
         label: { fontSize: 13, fontWeight: 'bold', color: '#e2e8f0' },
@@ -646,7 +653,7 @@ export default function DashboardPage() {
             {/* 平台分布 */}
             <DashCard>
               <PanelTitle title="平台分布" color="purple" />
-              <DashboardChart option={platformPieOption} height={220} />
+              <DashboardChart option={platformPieOption} height={280} />
               <div className="mt-2 space-y-1">
                 {data.platformDistribution.map((p, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
