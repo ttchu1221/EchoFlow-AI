@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generateScript } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 
 const PLATFORMS = [
   { id: 'xiaohongshu', name: '小红书' },
@@ -20,7 +21,7 @@ export default function ScriptPanel() {
     if (!title.trim()) return;
     setLoading(true);
     try {
-      const data = await generateScript({ title, platform, content_type: contentType, duration: '60s' });
+      const data = await generateScript(withLLMProvider({ title, platform, content_type: contentType, duration: '60s' }));
       setResult(data);
     } catch (e) {
       alert(e.message);

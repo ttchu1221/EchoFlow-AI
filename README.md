@@ -12,6 +12,7 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 
 | 版本 | 核心能力 |
 |------|----------|
+| **v2.2** | 🎨 LLM 模型自由选择 — 顶部栏一键切换 Qwen / DeepSeek / GPT-4o / Mimo |
 | **v2.1** | 🔌 抖音爆款采集浏览器插件、平台数据同步、修复引导页交互 |
 | **v2.0** | 🔐 用户认证系统、团队管理、成本追踪、AB 测试、竞品监控、归档管理 |
 | **v1.4** | 📊 DRG 审核、每日摘要、数据分析面板、定时任务调度、告警系统 |
@@ -22,6 +23,36 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 ---
 
 ## ✨ v2.1 新增功能
+
+### 🎨 LLM 模型自由选择（v2.2）
+
+| 功能 | 说明 |
+|------|------|
+| 顶部栏选择器 | Header 右侧 LLM 标签，点击下拉切换模型，显示模型名称和型号 |
+| 全局生效 | 选择后所有 12 个 AI 面板（标题生成、趋势分析、脚本生成等）自动使用该模型 |
+| 自动发现 | 后端根据 `.env` 中已配置的 API Key 自动返回可用模型列表，无需手动维护 |
+| 持久化选择 | 用户选择保存在 localStorage，刷新页面后仍然生效 |
+| 智能降级 | 未配置 API Key 的模型不会出现在列表中，选中的模型无 Key 时自动降级到默认模型 |
+
+**支持的模型**：
+
+| 提供商 | 环境变量 | 默认模型 |
+|--------|---------|---------|
+| 通义千问 | `QWEN_API_KEY` | `qwen-turbo` |
+| DeepSeek | `DEEPSEEK_API_KEY` | `deepseek-chat` |
+| GPT-4o | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| Mimo | `MIMO_API_KEY` | `mimo-v2.5-pro` |
+
+**配置方式**：在 `backend/.env` 中填入对应 API Key 即可启用：
+
+```bash
+# 只填你想用的即可，前端会自动只显示已配置的模型
+MIMO_API_KEY=your_key_here
+QWEN_API_KEY=your_key_here
+DEEPSEEK_API_KEY=your_key_here
+OPENAI_API_KEY=your_key_here
+DEFAULT_LLM_PROVIDER=mimo   # 未手动选择时的默认模型
+```
 
 ### 🔌 抖音爆款采集（浏览器插件）
 | 功能 | 说明 |
@@ -300,7 +331,12 @@ EchoFlow-AI/
 ├── frontend/
 │   └── src/
 │       ├── App.jsx             # 20+ 功能面板
+│       ├── api/
+│       │   └── client.js       # API 客户端（50+ 接口）
+│       ├── utils/
+│       │   └── llmProvider.js  # 🎨 LLM 模型选择状态管理 (v2.2)
 │       └── components/
+│           ├── Header.jsx          # 🎨 LLM 模型下拉选择器 (v2.2)
 │           ├── DashboardPage.jsx    # 🎬 3D 数据大屏
 │           ├── StrategyPanel.jsx    # 🧠 策略中心
 │           ├── GrowthLoopPanel.jsx  # 🔄 增长闭环
@@ -331,6 +367,13 @@ EchoFlow-AI/
 | POST | `/api/auth/register` | 用户注册 |
 | POST | `/api/auth/login` | 用户登录 |
 | GET | `/api/auth/me` | 获取当前用户信息 |
+
+### 系统 & LLM (v2.2)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/providers` | 获取可用 LLM 提供商列表（仅返回已配置 API Key 的） |
+| GET | `/api/health` | 健康检查 |
+| GET | `/api/monitoring` | 系统监控指标 |
 
 ### 平台数据同步 (v2.1)
 | 方法 | 路径 | 说明 |

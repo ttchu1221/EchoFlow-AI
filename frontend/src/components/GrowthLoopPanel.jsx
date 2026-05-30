@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { runGrowthLoop, getGrowthMemories, getGrowthStats, getActivePrompts, createGrowthMemory } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 import DashboardChart, { NEON_COLORS } from './DashboardChart';
 import StatsCard from './StatsCard';
 
@@ -46,7 +47,7 @@ export default function GrowthLoopPanel() {
     try {
       let metrics = {};
       if (recentMetrics.trim()) { try { metrics = JSON.parse(recentMetrics); } catch { metrics = { raw: recentMetrics }; } }
-      const data = await runGrowthLoop({ creator_id: creatorId, platform, recent_metrics: metrics, current_strategy: currentStrategy });
+      const data = await runGrowthLoop(withLLMProvider({ creator_id: creatorId, platform, recent_metrics: metrics, current_strategy: currentStrategy }));
       setResult(data);
       loadData();
     } catch (e) { alert(e.message); } finally { setLoading(false); }

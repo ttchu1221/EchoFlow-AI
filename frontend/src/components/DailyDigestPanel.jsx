@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getTodayDigest, generateDailyDigest, listDigests, getDigestByDate, getObsidianContent } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 import toast from 'react-hot-toast';
 
 const HEAT_COLORS = {
@@ -76,7 +77,7 @@ export default function DailyDigestPanel() {
       const data = {};
       const track = customTrack.trim() || selectedTrack;
       if (track) data.track = track;
-      const res = await generateDailyDigest(data);
+      const res = await generateDailyDigest(withLLMProvider(data));
       setDigest(res.data);
       setSelectedDate(null);
       toast.success(track ? `「${track}」赛道热点已生成` : '热点总结已生成并同步到 Obsidian');

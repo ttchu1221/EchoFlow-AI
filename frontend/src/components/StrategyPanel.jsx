@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generateStrategy, getGrowthStats } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 import DashboardChart, { NEON_COLORS } from './DashboardChart';
 import StatsCard from './StatsCard';
 
@@ -31,7 +32,7 @@ export default function StrategyPanel() {
     if (!form.growth_goal.trim() || !form.niche.trim()) return;
     setLoading(true);
     try {
-      const [data, statsData] = await Promise.all([generateStrategy(form), getGrowthStats()]);
+      const [data, statsData] = await Promise.all([generateStrategy(withLLMProvider(form)), getGrowthStats()]);
       setResult(data);
       setStats(statsData);
     } catch (e) { alert(e.message); } finally { setLoading(false); }

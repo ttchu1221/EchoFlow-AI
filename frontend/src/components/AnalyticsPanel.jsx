@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { analyzePerformance } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 import DashboardChart, { NEON_COLORS } from './DashboardChart';
 import StatsCard from './StatsCard';
 
@@ -17,11 +18,11 @@ export default function AnalyticsPanel() {
     if (!contentTitle.trim()) return;
     setLoading(true);
     try {
-      const data = await analyzePerformance({
+      const data = await analyzePerformance(withLLMProvider({
         content_title: contentTitle,
         metrics: { views: parseInt(views) || 0, likes: parseInt(likes) || 0, comments: parseInt(comments) || 0, shares: parseInt(shares) || 0 },
         platform,
-      });
+      }));
       setResult(data);
     } catch (e) { alert(e.message); } finally { setLoading(false); }
   };

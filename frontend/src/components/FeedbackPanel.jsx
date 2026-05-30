@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { analyzeFeedback } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 import DashboardChart, { NEON_COLORS } from './DashboardChart';
 
 const PLATFORMS = [
@@ -22,7 +23,7 @@ export default function FeedbackPanel() {
     setLoading(true);
     try {
       const commentList = comments.split('\n').filter((l) => l.trim());
-      const data = await analyzeFeedback({ content_title: contentTitle, comments: commentList, platform });
+      const data = await analyzeFeedback(withLLMProvider({ content_title: contentTitle, comments: commentList, platform }));
       setResult(data);
     } catch (e) { alert(e.message); } finally { setLoading(false); }
   };

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { HiOutlineRocketLaunch, HiOutlineClipboardDocument, HiOutlineSparkles } from 'react-icons/hi2'
 import { generateTitles } from '../api/client'
+import { withLLMProvider } from '../utils/llmProvider'
 import TitleCard from './TitleCard'
 
 export default function GeneratePanel({ platforms }) {
@@ -11,7 +12,6 @@ export default function GeneratePanel({ platforms }) {
     creator_profile: '',
     count: 5,
     hook_types: [],
-    llm_provider: null,
   })
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState(null)
@@ -28,12 +28,12 @@ export default function GeneratePanel({ platforms }) {
     setLoading(true)
     setResults(null)
     try {
-      const data = await generateTitles({
+      const data = await generateTitles(withLLMProvider({
         ...form,
         topic: form.topic.trim(),
         creator_profile: form.creator_profile.trim(),
         hook_types: form.hook_types.length > 0 ? form.hook_types : undefined,
-      })
+      }))
       setResults(data)
       toast.success(`生成了 ${data.titles.length} 个标题方案！`)
     } catch (err) {

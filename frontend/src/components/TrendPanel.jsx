@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { analyzeTrends } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 import DashboardChart, { NEON_COLORS } from './DashboardChart';
 
 const PLATFORMS = [
@@ -21,7 +22,7 @@ export default function TrendPanel() {
     if (!topic.trim()) return;
     setLoading(true);
     try {
-      const data = await analyzeTrends({ topic, platform, time_range: timeRange });
+      const data = await analyzeTrends(withLLMProvider({ topic, platform, time_range: timeRange }));
       setResult(data);
     } catch (e) {
       alert(e.message);

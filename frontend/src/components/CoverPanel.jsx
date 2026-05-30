@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { generateCover } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 
 const PLATFORMS = [
   { id: 'xiaohongshu', name: '小红书' },
@@ -19,7 +20,7 @@ export default function CoverPanel() {
     if (!title.trim()) return;
     setLoading(true);
     try {
-      const data = await generateCover({ title, platform });
+      const data = await generateCover(withLLMProvider({ title, platform }));
       setResult(data);
     } catch (e) {
       alert(e.message);

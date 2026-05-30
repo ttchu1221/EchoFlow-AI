@@ -13,6 +13,7 @@ async function request(path, options = {}) {
 }
 
 // ── 基础 ─────────────────────────────────────────────────
+export async function getProviders() { return request('/providers'); }
 export async function getPlatforms() { return request('/platforms'); }
 export async function getHotSearch(platform, limit = 30) { return request(`/hot/${platform}?limit=${limit}`); }
 

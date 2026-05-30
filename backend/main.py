@@ -276,6 +276,34 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/api/providers")
+async def get_providers():
+    """返回可用的 LLM 提供商列表（仅包含已配置 API Key 的）"""
+    from agents.base import _PROVIDER_CONFIG
+
+    PROVIDER_LABELS = {
+        "qwen": "通义千问",
+        "deepseek": "DeepSeek",
+        "openai": "GPT-4o",
+        "mimo": "Mimo",
+    }
+
+    providers = []
+    for name, cfg in _PROVIDER_CONFIG.items():
+        has_key = bool(os.getenv(cfg["env_key"], ""))
+        if not has_key:
+            continue
+        model = os.getenv(cfg["model_env"], cfg["default_model"])
+        providers.append({
+            "id": name,
+            "name": PROVIDER_LABELS.get(name, name),
+            "model": model,
+        })
+
+    default = os.getenv("DEFAULT_LLM_PROVIDER", "qwen")
+    return {"providers": providers, "default": default}
+
+
 @app.get("/api/monitoring")
 async def monitoring():
     """系统监控端点 — 返回服务健康状态和运行指标"""
