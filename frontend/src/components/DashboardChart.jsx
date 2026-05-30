@@ -17,7 +17,7 @@ echarts.use([
 /* ── 全局深色主题 ────────────────────────────────── */
 echarts.registerTheme('echowflow', {
   backgroundColor: 'transparent',
-  textStyle: { color: '#94a3b8', fontFamily: '"Inter", "Noto Sans SC", system-ui, sans-serif' },
+  textStyle: { color: '#94a3b8', fontFamily: '"Inter", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif' },
   title: { textStyle: { color: '#e2e8f0' }, subtextStyle: { color: '#64748b' } },
   legend: { textStyle: { color: '#94a3b8' } },
   tooltip: {

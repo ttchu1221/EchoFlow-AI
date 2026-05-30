@@ -47,7 +47,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['"Inter"', '"Noto Sans SC"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Inter"', '"PingFang SC"', '"Noto Sans SC"', '"Microsoft YaHei"', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
       },
       boxShadow: {
