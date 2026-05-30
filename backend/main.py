@@ -210,6 +210,7 @@ from onboarding.router import router as onboarding_router
 from analytics.router import router as analytics_router
 from archive.router import router as archive_router
 from daily_digest.router import router as daily_digest_router
+from platforms.sync_router import router as platform_sync_router
 
 app.include_router(auth_router)
 app.include_router(workflow_router)
@@ -223,6 +224,7 @@ app.include_router(onboarding_router)
 app.include_router(analytics_router)
 app.include_router(archive_router)
 app.include_router(daily_digest_router)
+app.include_router(platform_sync_router)
 
 # ── 请求计时中间件 ────────────────────────────────────────
 

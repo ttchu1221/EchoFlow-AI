@@ -2,13 +2,20 @@ import { useState, useEffect } from 'react';
 
 const API = '/api/onboarding';
 
+const DEFAULT_STEPS = [
+  { id: 'welcome', title: '了解系统', description: '熟悉 EchoFlow AI 的核心功能', action: '开始探索', route: '/trends' },
+  { id: 'view_trends', title: '查看趋势', description: '了解当前热门话题和趋势', action: '查看趋势', route: '/trends' },
+  { id: 'first_pipeline', title: '首次创作', description: '使用全流程生成第一篇内容', action: '去创作', route: '/pipeline' },
+  { id: 'bind_account', title: '绑定账号', description: '连接你的社交媒体账号', action: '去绑定', route: '/accounts' },
+  { id: 'setup_schedule', title: '设置定时', description: '配置自动化发布计划', action: '去设置', route: '/schedules' },
+  { id: 'invite_team', title: '邀请团队', description: '邀请团队成员协作', action: '去邀请', route: '/team' },
+];
+
 export default function OnboardingGuide({ onNavigate }) {
   const [status, setStatus] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     try {
       const res = await fetch(`${API}/status`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
@@ -19,30 +26,61 @@ export default function OnboardingGuide({ onNavigate }) {
         if (data.data.dismissed || data.data.all_completed) {
           setDismissed(true);
         }
+      } else {
+        // API 返回错误，使用默认步骤
+        setStatus({ steps: DEFAULT_STEPS, completed_steps: [], progress_pct: 0, next_step: DEFAULT_STEPS[0] });
       }
-    } catch (e) { console.error(e); }
-    setLoading(false);
+    } catch (e) {
+      // API 不可用，使用默认步骤
+      setStatus({ steps: DEFAULT_STEPS, completed_steps: [], progress_pct: 0, next_step: DEFAULT_STEPS[0] });
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const completeStep = async (stepId) => {
-    await fetch(`${API}/complete/${stepId}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    // 先导航
+    const step = status?.steps?.find(s => s.id === stepId);
+    if (step?.route) {
+      onNavigate?.(step.route);
+    }
+
+    // 再更新状态（忽略错误）
+    try {
+      await fetch(`${API}/complete/${stepId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      });
+    } catch (e) {}
+
+    // 更新本地状态
+    setStatus(prev => {
+      if (!prev) return prev;
+      const completed = [...(prev.completed_steps || []), stepId];
+      const allDone = completed.length >= (prev.steps?.length || 6);
+      return {
+        ...prev,
+        completed_steps: completed,
+        progress_pct: Math.round((completed.length / (prev.steps?.length || 6)) * 100),
+        all_completed: allDone,
+      };
     });
-    load();
   };
 
-  const dismiss = async () => {
-    await fetch(`${API}/dismiss`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    });
+  const dismiss = () => {
     setDismissed(true);
+    fetch(`${API}/dismiss`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    }).catch(() => {});
   };
 
-  if (loading || dismissed || !status || status.all_completed) return null;
+  if (dismissed || status?.all_completed) return null;
+
+  const steps = status?.steps || DEFAULT_STEPS;
+  const completedSteps = status?.completed_steps || [];
+  const progressPct = status?.progress_pct ?? Math.round((completedSteps.length / steps.length) * 100);
+  const nextStep = status?.next_step || steps.find(s => !completedSteps.includes(s.id));
 
   const stepIcons = {
     welcome: '👋', bind_account: '🔗', first_pipeline: '⚡',
@@ -57,32 +95,37 @@ export default function OnboardingGuide({ onNavigate }) {
           <p className="text-sm text-txt-muted">完成以下步骤，快速掌握 EchoFlow AI</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="text-sm text-brand-400 font-medium">{status.progress_pct}%</div>
+          <div className="text-sm text-brand-400 font-medium">{progressPct}%</div>
           <div className="w-32 h-2 bg-panel-100 rounded-full overflow-hidden">
             <div className="h-full bg-brand-500 rounded-full transition-all duration-500"
-              style={{ width: `${status.progress_pct}%` }} />
+              style={{ width: `${progressPct}%` }} />
           </div>
-          <button onClick={dismiss} className="text-txt-muted hover:text-txt-primary text-sm">跳过</button>
+          <button
+            onClick={dismiss}
+            className="text-txt-muted hover:text-txt-primary text-sm px-2 py-1 rounded hover:bg-panel-100 transition-colors"
+          >
+            跳过
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {status.steps?.map(step => {
-          const isCompleted = status.completed_steps?.includes(step.id);
-          const isNext = status.next_step?.id === step.id;
+        {steps.map(step => {
+          const isCompleted = completedSteps.includes(step.id);
+          const isNext = nextStep?.id === step.id;
           return (
             <div
               key={step.id}
-              className={`relative p-4 rounded-xl border transition-all cursor-pointer ${
+              className={`relative p-4 rounded-xl border transition-all ${
                 isCompleted
                   ? 'bg-green-500/5 border-green-500/20'
                   : isNext
-                    ? 'bg-brand-500/10 border-brand-500/40 ring-1 ring-brand-500/20'
-                    : 'bg-panel-50/50 border-panel-border hover:border-brand-500/30'
+                    ? 'bg-brand-500/10 border-brand-500/40 ring-1 ring-brand-500/20 cursor-pointer'
+                    : 'bg-panel-50/50 border-panel-border hover:border-brand-500/30 cursor-pointer'
               }`}
               onClick={() => {
-                if (isNext && step.route) {
-                  onNavigate?.(step.route);
+                if (!isCompleted && step.route) {
+                  completeStep(step.id);
                 }
               }}
             >
@@ -94,7 +137,7 @@ export default function OnboardingGuide({ onNavigate }) {
                 {isCompleted && <span className="text-green-400">✓</span>}
               </div>
               <p className="text-xs text-txt-muted">{step.description}</p>
-              {isNext && (
+              {!isCompleted && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

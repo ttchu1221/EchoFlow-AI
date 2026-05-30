@@ -26,6 +26,7 @@ import CompetitorPanel from './components/CompetitorPanel';
 import TeamPanel from './components/TeamPanel';
 import OnboardingGuide from './components/OnboardingGuide';
 import DailyDigestPanel from './components/DailyDigestPanel';
+import PlatformSyncPanel from './components/PlatformSyncPanel';
 
 const DashboardPage = lazy(() => import('./components/DashboardPage'));
 
@@ -52,6 +53,7 @@ const NAV_ITEMS = [
   { id: 'history',     label: '历史记录', icon: '📜', group: '增长' },
   { id: 'cost',        label: '成本控制', icon: '💰', group: '设置' },
   { id: 'accounts',    label: '账号管理', icon: '🔗', group: '设置' },
+  { id: 'platform_sync', label: '平台同步', icon: '🔌', group: '设置' },
   { id: 'team',        label: '团队管理', icon: '👥', group: '设置' },
 ];
 
@@ -82,6 +84,7 @@ const PANEL_MAP = {
   competitor:    CompetitorPanel,
   team:          TeamPanel,
   daily_digest:  DailyDigestPanel,
+  platform_sync: PlatformSyncPanel,
 };
 
 // 路由 ID 到导航 ID 的映射
