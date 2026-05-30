@@ -400,6 +400,7 @@ export default function DashboardPage() {
         show: true,
         color: '#94a3b8',
         fontSize: 10,
+        fontFamily: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
         formatter: '{b}\n{d}%',
       },
       emphasis: {

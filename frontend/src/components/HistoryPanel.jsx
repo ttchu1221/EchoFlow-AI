@@ -51,7 +51,7 @@ export default function HistoryPanel() {
           itemStyle: { color: NEON_COLORS[i % NEON_COLORS.length] },
         }));
       })(),
-      label: { show: true, color: '#94a3b8', fontSize: 11, formatter: '{b}\n{c}' },
+      label: { show: true, color: '#94a3b8', fontSize: 11, fontFamily: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif', formatter: '{b}\n{c}' },
       emphasis: { label: { fontSize: 13, fontWeight: 'bold', color: '#e2e8f0' } },
       itemStyle: { borderColor: '#0d1117', borderWidth: 3 },
     }],
