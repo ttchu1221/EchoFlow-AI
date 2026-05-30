@@ -1,64 +1,104 @@
 # EchoFlow AI 🚀
 
-> AI Native Content Growth Operating System — v1.3 多平台对接版
+> AI Native Content Growth Operating System — v2.1 爆款采集版
 
 EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的核心不是"帮你写一篇内容"，而是**"帮你运营一个账号"**。
 
 **核心循环**：生成 → 发布 → 分析 → 优化 → 增长
 
-## ✨ v1.3 新增功能
+---
 
-### 🔗 多平台对接（核心能力升级）
+## ✨ 版本历程
+
+| 版本 | 核心能力 |
+|------|----------|
+| **v2.1** | 🔌 抖音爆款采集浏览器插件、平台数据同步、修复引导页交互 |
+| **v2.0** | 🔐 用户认证系统、团队管理、成本追踪、AB 测试、竞品监控、归档管理 |
+| **v1.4** | 📊 DRG 审核、每日摘要、数据分析面板、定时任务调度、告警系统 |
+| **v1.3** | 🔗 多平台对接、一键发布、Cookie 加密存储、数据回流 |
+| **v1.2** | 🎬 3D 数据大屏、ECharts 可视化、全屏模式 |
+| **v1.1** | 🧠 策略智能体、增长反馈闭环、四层记忆系统、智能 LLM 路由 |
+
+---
+
+## ✨ v2.1 新增功能
+
+### 🔌 抖音爆款采集（浏览器插件）
 | 功能 | 说明 |
 |------|------|
-| 统一平台适配器 | `PlatformAdapter` 抽象基类，支持小红书/抖音/视频号 |
-| 一键发布 | 选择内容 → 选平台 → 一键发布，支持 Mock 和真实模式切换 |
-| Cookie 加密存储 | Fernet 加密，账号凭证安全持久化到 MongoDB |
-| 发布历史管理 | 完整的发布记录追踪，状态/链接/错误信息 |
-| 数据回流 | 自动抓取已发布内容的阅读/点赞/评论/分享/收藏指标 |
-| 账号管理 | 绑定/解绑平台账号，Cookie 过期自动检测 |
+| 浮动采集按钮 | 在抖音页面右下角显示 ⭐ 按钮，一键采集当前视频 |
+| 自动提取数据 | 标题、作者、点赞数、评论数、收藏数、转发数、URL |
+| 本地存储 | 使用 chrome.storage.local 本地保存，最多 500 条 |
+| 后端同步 | 一键同步到 EchoFlow 后端，支持批量上传 |
+| 去重机制 | 基于 URL 自动去重，避免重复采集 |
 
-### 📡 支持的平台
-| 平台 | 发布 | 数据采集 | 说明 |
-|------|------|---------|------|
-| 小红书 | ✅ | ✅ | 图文笔记发布 + 指标采集 |
-| 抖音 | ⚠️ | ✅ | 视频发布需创作者中心，数据采集已支持 |
-| 视频号 | ⚠️ | ✅ | 视频发布需视频号助手，数据采集已支持 |
+### 📊 平台数据同步模块
+| API | 说明 |
+|-----|------|
+| `POST /api/platform/collect` | 采集单条视频数据 |
+| `POST /api/platform/collect/batch` | 批量采集（插件同步） |
+| `GET /api/platform/collect/list` | 查看采集列表（分页） |
+| `POST /api/platform/import/csv` | 导入平台 CSV 数据（抖音/哔哩哔哩格式） |
+| `POST /api/platform/sync` | 通用平台数据同步 |
 
-### 🆕 新增页面
-| 页面 | 说明 |
-|------|------|
-| 多平台发布 | 选择平台 → 填写标题/内容/标签 → 一键发布，实时查看发布历史 |
-| 账号管理 | 绑定/解绑平台账号，Cookie 获取引导，加密存储状态展示 |
-
-### 🔐 安全设计
-- Cookie 使用 Fernet 对称加密，密钥持久化到 `data/.secret_key`
-- 文件权限 0o600，仅当前用户可读
-- Cookie 仅用于平台 API 调用，不会外传
-
-## ✨ v1.2 新增功能
-
-### 🎬 3D 数据大屏（沉浸式可视化）
+### 🖥️ 前端爆款采集面板
 | 功能 | 说明 |
 |------|------|
-| Three.js 3D 场景 | 粒子场 + 发光二十面体 + 轨道环 + 数据柱 + 星空背景 |
-| 6 大 KPI 卡片 | 翻牌数字动画，实时数据脉冲效果 |
-| 7 张交互图表 | ECharts 6.1 驱动，统一 neon 暗色主题 |
-| 全屏模式 | 无干扰数据大屏体验 |
-| 实时活动流 | 自动轮播系统动态 |
+| 采集统计 | 总数、今日采集、分平台统计 |
+| 采集记录表 | 标题、作者、互动数据、平台标签、跳转链接 |
+| 使用说明 | 插件安装和使用指引 |
+| 分页浏览 | 支持分页查看历史采集记录 |
 
-### 📊 大屏包含的图表
-| 图表 | 类型 | 说明 |
-|------|------|------|
-| 用户增长趋势 | 面积图 | 抖音/小红书/B站 三平台近 7 天 |
-| 平台粉丝分布 | 环形图 | 各平台粉丝占比 |
-| 内容表现对比 | 分组柱状图 | 播放/点赞/评论/分享 |
-| 互动率雷达 | 雷达图 | 当前 vs 上期对比 |
-| 内容转化漏斗 | 条形图 | 曝光→播放→完播→点赞→关注 |
-| 24h 活跃时段 | 折线图 | 用户活跃热力分布 |
-| TOP5 爆款内容 | 排行表 | 实时排序 |
+---
 
-## ✨ v1.1 功能
+## ✨ v2.0 核心功能
+
+### 🔐 用户认证系统
+| 功能 | 说明 |
+|------|------|
+| 用户注册/登录 | JWT Token 认证，bcrypt 密码加密 |
+| 角色权限 | admin / editor / viewer 三级角色 |
+| 资源权限 | content:create、account:bind、abtest:manage 等细粒度控制 |
+| 引导流程 | 新用户快速上手引导（可跳过） |
+
+### 👥 团队协作
+| 功能 | 说明 |
+|------|------|
+| 成员管理 | 邀请/移除团队成员 |
+| 角色分配 | 管理员/编辑者/查看者 |
+| 协作日志 | 操作记录追踪 |
+
+### 💰 成本追踪
+| 功能 | 说明 |
+|------|------|
+| Token 消耗统计 | 按模型/任务类型统计 LLM 调用成本 |
+| 预算管理 | 设置预算上限，超支告警 |
+| 成本报表 | 日/周/月成本趋势分析 |
+
+### 🧪 AB 测试
+| 功能 | 说明 |
+|------|------|
+| 多变量测试 | 标题/封面/发布时间等变量对比 |
+| 效果评估 | 点击率/互动率/转化率对比分析 |
+| 智能推荐 | 基于测试结果推荐最优方案 |
+
+### 📡 竞品监控
+| 功能 | 说明 |
+|------|------|
+| 竞品追踪 | 监控竞品账号内容发布动态 |
+| 对比分析 | 内容策略、发布频率、互动数据对比 |
+| 差异化建议 | 基于竞品分析提供差异化内容策略 |
+
+### 📦 归档管理
+| 功能 | 说明 |
+|------|------|
+| 内容归档 | 历史内容分类归档 |
+| 版本管理 | 内容修改历史追踪 |
+| 快速检索 | 按标签/平台/时间检索历史内容 |
+
+---
+
+## ✨ v1.x 基础功能
 
 ### 🧠 策略智能体（核心大脑）
 | 功能 | 说明 |
@@ -70,7 +110,7 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 | 钩子 & 互动策略 | 提升 CTR 和互动率的具体策略 |
 | 风险预警 | 识别潜在风险并提供应对方案 |
 
-### 🔄 增长反馈闭环（核心竞争力）
+### 🔄 增长反馈闭环
 | 功能 | 说明 |
 |------|------|
 | 表现诊断 | 基于历史数据自动诊断内容表现问题 |
@@ -94,62 +134,55 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 | 数据分析 | GPT-4o | 综合能力好 |
 | 复杂推理 | GPT-4o | 能力最全面 |
 
-> 自动按任务类型选择最优模型，API Key 未配置时自动降级。
-
-## ✨ 全功能概览
-
-### Phase 1 · 基础
+### 🎬 3D 数据大屏
 | 功能 | 说明 |
 |------|------|
-| 🎯 爆款标题生成 | 输入选题 → 多个高 CTR 标题方案（含评分、情绪标签、解析） |
-| ✨ 标题优化 | 输入标题 → 多个优化方案 + 改进点分析 |
+| Three.js 3D 场景 | 粒子场 + 发光二十面体 + 轨道环 + 数据柱 + 星空背景 |
+| 6 大 KPI 卡片 | 翻牌数字动画，实时数据脉冲效果 |
+| 7 张交互图表 | ECharts 6.1 驱动，统一 neon 暗色主题 |
+| 全屏模式 | 无干扰数据大屏体验 |
 
-### Phase 2 · 趋势反馈
-| 功能 | 说明 |
-|------|------|
-| 📈 趋势分析 | 热门话题发现 + 爆款模式分析 + 受众洞察（集成实时平台数据） |
-| 💬 评论分析 | 情感分析 + 意图识别 + 互动评分 + 改进建议 |
+### 📡 多平台对接
+| 平台 | 发布 | 数据采集 | 说明 |
+|------|------|---------|------|
+| 小红书 | ✅ | ✅ | 图文笔记发布 + 指标采集 |
+| 抖音 | ⚠️ | ✅ | 视频发布需创作者中心，数据采集已支持 |
+| 视频号 | ⚠️ | ✅ | 视频发布需视频号助手，数据采集已支持 |
+| B站 | - | ✅ | 数据采集已支持 |
+| 微博 | - | ✅ | 数据采集已支持 |
 
-### Phase 3 · 内容生产
-| 功能 | 说明 |
-|------|------|
-| 📝 脚本生成 | 视频脚本 / 小红书文案 / 直播脚本（含分段、拍摄提示） |
-| 🎨 封面设计 | 封面主文案 + 副文案 + 布局 + 配色 + 视觉元素建议 |
-| 🚀 发布策略 | 最佳发布时间 + 标签优化 + 跨平台分发 + 文案模板 |
-| ⚡ 全流程 | 一键生成：标题 + 脚本 + 封面 + 发布策略 |
-
-### Phase 4 · 增长分析
-| 功能 | 说明 |
-|------|------|
-| 📊 数据分析 | 指标解读 + 基准对比 + 增长建议 + 策略总结 |
-| 🧠 创作者记忆 | 画像管理 + 内容记忆 + 智能洞察 |
+---
 
 ## 🏗️ 技术架构
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Frontend (React)                  │
-│  热搜 │ 趋势 │ 策略 │ 标题 │ 脚本 │ 封面 │ 发布 │ 增长闭环 │
-└───────────────────────┬─────────────────────────────┘
-                        │
-┌───────────────────────┴─────────────────────────────┐
-│              Backend (FastAPI) — 30+ API             │
-├─────────────────────────────────────────────────────┤
-│                   Agent Layer                        │
-│  管理智能体 ← 策略智能体(🧠核心大脑)                │
-│  ├── 选题 │ 钩子 │ 趋势 │ 评论 │ 脚本               │
-│  ├── 封面 │ 发布 │ 分析 │ 记忆                       │
-│  └── 增长反馈闭环 (🔄 核心竞争力)                    │
-├─────────────────────────────────────────────────────┤
-│              Smart LLM Router                        │
-│  Qwen(分类) │ DeepSeek(创意) │ GPT-4o(推理) │ Mimo   │
-├─────────────────────────────────────────────────────┤
-│              Memory Layer (四层记忆)                  │
-│  用户记忆 │ 增长记忆 │ 策略记忆 │ 工作流记忆          │
-├─────────────────────────────────────────────────────┤
-│              Data Layer                              │
-│  MongoDB(持久化) │ Redis(缓存) │ MCP Servers │ 爬虫   │
-└─────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (React 18 + Vite 5)             │
+│  数据大屏 │ 策略 │ 趋势 │ 标题 │ 脚本 │ 封面 │ 发布 │ 增长闭环 │
+│  竞品监控 │ AB测试 │ 成本 │ 团队 │ 归档 │ 爆款采集 │ 平台同步  │
+└───────────────────────────┬─────────────────────────────────┘
+                            │
+┌───────────────────────────┴─────────────────────────────────┐
+│                Backend (FastAPI) — 50+ API                   │
+├─────────────────────────────────────────────────────────────┤
+│                     Agent Layer                              │
+│  管理智能体 ← 策略智能体(🧠核心大脑)                        │
+│  ├── 选题 │ 钩子 │ 趋势 │ 评论 │ 脚本                       │
+│  ├── 封面 │ 发布 │ 分析 │ 记忆                               │
+│  └── 增长反馈闭环 (🔄 核心竞争力)                            │
+├─────────────────────────────────────────────────────────────┤
+│                Smart LLM Router                              │
+│  Qwen(分类) │ DeepSeek(创意) │ GPT-4o(推理) │ Mimo           │
+├─────────────────────────────────────────────────────────────┤
+│                Memory Layer (四层记忆)                        │
+│  用户记忆 │ 增长记忆 │ 策略记忆 │ 工作流记忆                  │
+├─────────────────────────────────────────────────────────────┤
+│                Data Layer                                    │
+│  MongoDB(持久化) │ Redis(缓存) │ MCP Servers │ 爬虫           │
+├─────────────────────────────────────────────────────────────┤
+│                Browser Extension                             │
+│  抖音爆款采集插件 → chrome.storage → 后端同步                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## 技术栈
@@ -157,42 +190,32 @@ EchoFlow AI 是一个面向内容创作者的自主式 AI 增长系统。它的�
 | 层级 | 技术 |
 |------|------|
 | 前端 | React 18 + Vite 5 + TailwindCSS 3 |
-| 后端 | Python 3.10+ + FastAPI |
+| 后端 | Python 3.12 + FastAPI |
 | 智能体 | 10 个专业智能体 + LangGraph 工作流 |
 | LLM | Qwen / DeepSeek / GPT / Mimo（智能路由） |
 | 数据 | MCP 协议 + 爬虫（B站/抖音/小红书/微博） |
 | 存储 | MongoDB（持久化）+ Redis（缓存） |
+| 浏览器插件 | Chrome Manifest V3（抖音爆款采集） |
+
+---
 
 ## 🚀 快速开始
 
 ### 0. 基础服务（MongoDB & Redis）
 
-系统使用 MongoDB 存储数据，Redis 做缓存，启动前需确保两个服务正在运行。
-
-> **前提**：已安装 Homebrew，MongoDB 和 Redis 均通过 Homebrew 管理。
-
 ```bash
-# ── 首次安装 ──────────────────────────────────
-brew install redis
-# MongoDB 如果未安装：brew install mongodb-community
-
 # ── 启动服务 ──────────────────────────────────
 brew services start redis
 brew services start mongodb-community
 
-# ── 关闭服务（不用时关闭，避免占用资源）────────
+# ── 关闭服务 ──────────────────────────────────
 brew services stop redis
 brew services stop mongodb-community
 
-# ── 查看状态 ──────────────────────────────────
-brew services list | grep -E "redis|mongo"
-
 # ── 验证连接 ──────────────────────────────────
-redis-cli ping          # 应返回 PONG
-mongosh --eval "db.runCommand({ping:1})" --quiet  # 应返回 { ok: 1 }
+redis-cli ping
+mongosh --eval "db.runCommand({ping:1})" --quiet
 ```
-
-> 💡 **提示**：不需要时记得 `brew services stop` 关闭，不会一直占后台资源。
 
 ### 1. 后端
 
@@ -200,8 +223,8 @@ mongosh --eval "db.runCommand({ping:1})" --quiet  # 应返回 { ok: 1 }
 cd backend
 
 # 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate
 
 # 安装依赖
 pip install -r requirements.txt
@@ -211,7 +234,7 @@ cp .env.example .env
 # 编辑 .env 填入你的 API Key
 
 # 启动后端
-python main.py
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 后端运行在 `http://localhost:8000`，API 文档：`http://localhost:8000/docs`
@@ -220,89 +243,113 @@ python main.py
 
 ```bash
 cd frontend
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
 前端运行在 `http://localhost:3000`
 
-### 3. 使用
+### 3. 浏览器插件（爆款采集）
 
-打开浏览器访问 `http://localhost:3000`，从**策略中心**开始制定增长策略！
+1. 打开 Chrome，访问 `chrome://extensions/`
+2. 开启「开发者模式」
+3. 点击「加载已解压的扩展程序」
+4. 选择 `extensions/douyin/` 文件夹
+5. 打开抖音网页版（douyin.com），右下角出现 ⭐ 按钮即可使用
+
+### 4. 使用
+
+打开浏览器访问 `http://localhost:3000`，使用以下账号登录：
+
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| admin | admin123 | 管理员 |
+
+---
 
 ## 📁 项目结构
 
 ```
 EchoFlow-AI/
 ├── backend/
-│   ├── main.py                 # FastAPI 入口 (30+ API 路由)
-│   ├── agents/
+│   ├── main.py                 # FastAPI 入口 (50+ API 路由)
+│   ├── agents/                 # 10 个专业智能体
 │   │   ├── base.py             # LLM 抽象层 + 智能路由
 │   │   ├── manager.py          # 管理智能体 (任务编排核心)
-│   │   ├── strategy_agent.py   # 🧠 策略智能体 (v1.1 核心大脑)
-│   │   ├── topic_agent.py      # 选题生成智能体
-│   │   ├── hook_agent.py       # 钩子优化智能体
-│   │   ├── trend_agent.py      # 趋势分析智能体
-│   │   ├── feedback_agent.py   # 评论分析智能体
-│   │   ├── script_agent.py     # 脚本生成智能体
-│   │   ├── cover_agent.py      # 封面文案智能体
-│   │   ├── publish_agent.py    # 发布策略智能体
-│   │   ├── analytics_agent.py  # 数据分析智能体
-│   │   └── memory_agent.py     # 记忆智能体
-│   ├── workflows/
-│   │   ├── title_workflow.py   # LangGraph 标题工作流
-│   │   └── growth_loop.py      # 🔄 增长反馈闭环 (v1.1)
-│   ├── models/
-│   │   └── schemas.py          # Pydantic 数据模型
-│   ├── memory/
-│   │   └── store.py            # 四层记忆存储 (v1.1)
-│   ├── crawlers/               # 平台爬虫 (三级降级)
-│   ├── mcp_clients/            # MCP 协议客户端
-│   ├── configs/
-│   │   └── platforms.json      # 5 个平台特性配置
+│   │   ├── strategy_agent.py   # 🧠 策略智能体 (核心大脑)
+│   │   └── ...                 # 其他智能体
+│   ├── workflows/              # LangGraph 工作流
+│   ├── models/                 # Pydantic 数据模型
+│   ├── memory/                 # 四层记忆存储
+│   ├── platforms/              # 平台适配器 + 数据同步
+│   │   ├── adapters.py         # 平台适配器（发布/采集）
+│   │   ├── manager.py          # 账号管理（Cookie 加密）
+│   │   └── sync_router.py      # 🔌 爆款采集 API (v2.1)
+│   ├── auth/                   # 🔐 用户认证 (v2.0)
+│   ├── team/                   # 👥 团队管理 (v2.0)
+│   ├── cost/                   # 💰 成本追踪 (v2.0)
+│   ├── abtest/                 # 🧪 AB 测试 (v2.0)
+│   ├── competitor/             # 📡 竞品监控 (v2.0)
+│   ├── archive/                # 📦 归档管理 (v2.0)
+│   ├── scheduler/              # ⏰ 定时任务 (v1.4)
+│   ├── alerts/                 # 🚨 告警系统 (v1.4)
+│   ├── analytics/              # 📊 数据分析 (v1.4)
+│   ├── daily_digest/           # 📰 每日摘要 (v1.4)
+│   ├── onboarding/             # 🎯 引导流程 (v2.0)
 │   └── requirements.txt
 ├── frontend/
 │   └── src/
-│       ├── App.jsx             # 13 个功能面板
-│       ├── api/client.js       # API 调用层
+│       ├── App.jsx             # 20+ 功能面板
 │       └── components/
-│           ├── StrategyPanel.jsx    # 🧠 策略中心 (v1.1)
-│           ├── GrowthLoopPanel.jsx  # 🔄 增长闭环 (v1.1)
-│           ├── HotSearchPanel.jsx   # 实时热搜
-│           ├── TrendPanel.jsx       # 趋势分析
-│           ├── GeneratePanel.jsx    # 标题生成
-│           ├── ScriptPanel.jsx      # 脚本生成
-│           ├── CoverPanel.jsx       # 封面设计
-│           ├── PublishPanel.jsx     # 发布策略
-│           ├── PipelinePanel.jsx    # 全流程
-│           ├── AnalyticsPanel.jsx   # 数据分析
-│           ├── FeedbackPanel.jsx    # 评论分析
-│           └── HistoryPanel.jsx     # 历史记录
-├── mcp-servers/
-│   ├── bilibili-mcp-server/    # B站 MCP Server
-│   └── dailyhot-api/           # 60+ 平台热搜聚合
+│           ├── DashboardPage.jsx    # 🎬 3D 数据大屏
+│           ├── StrategyPanel.jsx    # 🧠 策略中心
+│           ├── GrowthLoopPanel.jsx  # 🔄 增长闭环
+│           ├── PlatformSyncPanel.jsx # 🔌 爆款采集 (v2.1)
+│           ├── TeamPanel.jsx        # 👥 团队管理
+│           ├── CostPanel.jsx        # 💰 成本追踪
+│           ├── ABTestPanel.jsx      # 🧪 AB 测试
+│           ├── CompetitorPanel.jsx  # 📡 竞品监控
+│           └── ...                  # 其他面板
+├── extensions/
+│   └── douyin/                 # 🔌 抖音爆款采集插件 (v2.1)
+│       ├── manifest.json       # Chrome 扩展配置
+│       ├── content.js          # 页面内容提取
+│       ├── background.js       # 后台存储 + 同步
+│       ├── popup.html/js       # 弹窗界面
+│       └── icons/              # 插件图标
+├── mcp-servers/                # MCP 协议服务
 └── README.md
 ```
 
-## 🔌 API 接口
+---
 
-### v1.1 新增
+## 🔌 API 接口（50+）
+
+### 认证 & 用户 (v2.0)
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| POST | `/api/strategy` | 🧠 策略生成（核心大脑） |
+| POST | `/api/auth/register` | 用户注册 |
+| POST | `/api/auth/login` | 用户登录 |
+| GET | `/api/auth/me` | 获取当前用户信息 |
+
+### 平台数据同步 (v2.1)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/platform/collect` | 采集单条视频 |
+| POST | `/api/platform/collect/batch` | 批量采集 |
+| GET | `/api/platform/collect/list` | 查看采集列表 |
+| POST | `/api/platform/import/csv` | 导入 CSV 数据 |
+| POST | `/api/platform/sync` | 通用平台同步 |
+| GET | `/api/platform/data` | 获取所有同步数据 |
+
+### 策略 & 增长 (v1.1)
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/strategy` | 🧠 策略生成 |
 | POST | `/api/growth-loop` | 🔄 增长反馈闭环 |
 | GET | `/api/growth-stats` | 增长统计数据 |
-| POST | `/api/growth-memories` | 保存增长记忆 |
-| GET | `/api/growth-memories` | 获取增长记忆 |
-| POST | `/api/strategy-memories` | 保存策略记忆 |
-| GET | `/api/strategy-memories` | 获取策略记忆 |
-| GET | `/api/active-prompts` | 获取活跃 Prompt 版本 |
 
-### Phase 1-4
+### 内容创作 (Phase 1-4)
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | `/api/generate` | 生成爆款标题 |
@@ -314,17 +361,21 @@ EchoFlow-AI/
 | POST | `/api/publish` | 发布策略 |
 | POST | `/api/pipeline` | 全流程生产 |
 | POST | `/api/analytics` | 数据分析 |
-| POST/GET | `/api/profiles` | 创作者画像 CRUD |
-| GET | `/api/memories` | 内容记忆 |
-| POST | `/api/memories/search` | 搜索记忆 |
 
-### 通用
+### 运营管理 (v2.0)
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/platforms` | 获取平台列表 |
-| GET | `/api/hot/{platform}` | 实时热搜 |
-| GET | `/api/history` | 历史记录 |
-| DELETE | `/api/history/{id}` | 删除记录 |
+| GET/POST | `/api/team/*` | 团队管理 |
+| GET/POST | `/api/cost/*` | 成本追踪 |
+| GET/POST | `/api/abtest/*` | AB 测试 |
+| GET/POST | `/api/competitor/*` | 竞品监控 |
+| GET/POST | `/api/archive/*` | 归档管理 |
+| GET/POST | `/api/scheduler/*` | 定时任务 |
+| GET/POST | `/api/alerts/*` | 告警系统 |
+| GET | `/api/dashboard` | 数据大屏 |
+| GET | `/api/onboarding/status` | 引导状态 |
+
+---
 
 ## 🤖 多智能体架构
 
