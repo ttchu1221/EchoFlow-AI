@@ -388,35 +388,50 @@ export default function DashboardPage() {
 
   /* 平台分布 - 环形图 */
   const platformPieOption = useMemo(() => ({
+    tooltip: {
+      trigger: 'item',
+      formatter: '{b}: {c} 次 ({d}%)',
+      backgroundColor: 'rgba(13, 17, 23, 0.95)',
+      borderColor: 'rgba(34, 211, 238, 0.2)',
+      textStyle: { color: '#e2e8f0', fontFamily: '"PingFang SC", "Noto Sans SC", system-ui, sans-serif' },
+    },
+    legend: {
+      orient: 'horizontal',
+      bottom: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 12,
+      textStyle: {
+        color: '#94a3b8',
+        fontSize: 11,
+        fontFamily: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
+      },
+    },
     series: [{
       type: 'pie',
-      radius: ['40%', '68%'],
-      center: ['50%', '50%'],
+      radius: ['35%', '65%'],
+      center: ['50%', '45%'],
       data: data.platformDistribution.map((d, i) => ({
         ...d,
         itemStyle: { color: NEON_COLORS[i] },
       })),
       label: {
         show: true,
-        color: '#94a3b8',
+        position: 'inside',
+        color: '#fff',
         fontSize: 11,
+        fontWeight: 600,
         fontFamily: '"PingFang SC", "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif',
-        formatter: '{b}\n{d}%',
-        overflow: 'truncate',
-        ellipsis: '...',
-      },
-      labelLine: {
-        show: true,
-        lineStyle: { color: 'rgba(148, 163, 184, 0.4)', width: 1 },
-        smooth: true,
+        formatter: '{d}%',
+        textShadowColor: 'rgba(0,0,0,0.6)',
+        textShadowBlur: 4,
       },
       emphasis: {
-        label: { fontSize: 13, fontWeight: 'bold', color: '#e2e8f0' },
+        label: { fontSize: 14, fontWeight: 'bold', show: true },
         itemStyle: { shadowBlur: 20, shadowColor: 'rgba(34, 211, 238, 0.3)' },
       },
-      itemStyle: { borderColor: '#0d1117', borderWidth: 3 },
+      itemStyle: { borderColor: '#0d1117', borderWidth: 2 },
     }],
-    tooltip: { trigger: 'item', formatter: '{b}: {c}% ({d}%)' },
     animationDuration: 1000,
   }), [data.platformDistribution]);
 
