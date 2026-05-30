@@ -276,6 +276,7 @@ async def get_dashboard_stats() -> dict:
     platform_map = {
         "xiaohongshu": "小红书", "douyin": "抖音", "bilibili": "B站",
         "weibo": "微博", "youtube": "YouTube", "xhs": "小红书",
+        "weixin_video": "视频号", "kuaishou": "快手",
     }
     platform_distribution = [
         {"name": platform_map.get(p["_id"], p["_id"] or "未知"), "value": p["count"]}
@@ -284,25 +285,49 @@ async def get_dashboard_stats() -> dict:
     if not platform_distribution:
         platform_distribution = [{"name": "暂无数据", "value": 1}]
 
-    # ── 内容表现（按平台统计增长记忆） ───────────────────
-    perf_pipeline = [
+    # ── 内容表现（从 content_metrics 获取真实数据） ───────
+    real_perf_pipeline = [
         {"$group": {
             "_id": "$platform",
             "count": {"$sum": 1},
-            "avg_engagement": {"$avg": {"$ifNull": ["$engagement_rate", 0]}},
+            "total_views": {"$sum": {"$ifNull": ["$views", 0]}},
+            "total_likes": {"$sum": {"$ifNull": ["$likes", 0]}},
+            "total_shares": {"$sum": {"$ifNull": ["$shares", 0]}},
+            "total_comments": {"$sum": {"$ifNull": ["$comments", 0]}},
         }},
-        {"$sort": {"count": -1}},
-        {"$limit": 5},
+        {"$sort": {"total_views": -1}},
+        {"$limit": 6},
     ]
-    perf_cursor = _col("growth_memories").aggregate(perf_pipeline)
-    perf_results = await perf_cursor.to_list(length=5)
+    real_perf_cursor = _col("content_metrics").aggregate(real_perf_pipeline)
+    real_perf_results = await real_perf_cursor.to_list(length=6)
 
-    content_performance = {
-        "categories": [platform_map.get(p["_id"], p["_id"] or "未知") for p in perf_results] or ["暂无数据"],
-        "views": [p["count"] * 100 for p in perf_results] or [0],
-        "likes": [int(p["count"] * p["avg_engagement"]) for p in perf_results] or [0],
-        "shares": [int(p["count"] * p["avg_engagement"] * 0.3) for p in perf_results] or [0],
-    }
+    if real_perf_results:
+        content_performance = {
+            "categories": [platform_map.get(p["_id"], p["_id"] or "未知") for p in real_perf_results],
+            "views": [p["total_views"] for p in real_perf_results],
+            "likes": [p["total_likes"] for p in real_perf_results],
+            "shares": [p["total_shares"] for p in real_perf_results],
+            "comments": [p["total_comments"] for p in real_perf_results],
+        }
+    else:
+        # 回退：用 growth_memories 的 engagement 数据
+        perf_pipeline = [
+            {"$group": {
+                "_id": "$platform",
+                "count": {"$sum": 1},
+                "avg_engagement": {"$avg": {"$ifNull": ["$engagement_rate", 0]}},
+            }},
+            {"$sort": {"count": -1}},
+            {"$limit": 5},
+        ]
+        perf_cursor = _col("growth_memories").aggregate(perf_pipeline)
+        perf_results = await perf_cursor.to_list(length=5)
+        content_performance = {
+            "categories": [platform_map.get(p["_id"], p["_id"] or "未知") for p in perf_results] or ["暂无数据"],
+            "views": [p["count"] * 100 for p in perf_results] or [0],
+            "likes": [int(p["count"] * p["avg_engagement"]) for p in perf_results] or [0],
+            "shares": [int(p["count"] * p["avg_engagement"] * 0.3) for p in perf_results] or [0],
+        }
 
     # ── 互动雷达（按 outcome 分布） ──────────────────────
     outcome_scores = {

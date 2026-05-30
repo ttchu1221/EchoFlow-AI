@@ -435,11 +435,11 @@ export default function DashboardPage() {
     animationDuration: 1000,
   }), [data.platformDistribution]);
 
-  /* 内容表现 - 柱状图 */
+  /* 内容表现 - 柱状图（真实数据） */
   const contentBarOption = useMemo(() => ({
-    grid: { left: 50, right: 20, top: 30, bottom: 30 },
+    grid: { left: 55, right: 20, top: 35, bottom: 30 },
     legend: {
-      data: ['播放量', '点赞数', '分享数'],
+      data: ['播放量', '点赞数', '评论数', '分享数'],
       textStyle: { color: '#94a3b8', fontSize: 10 },
       top: 0, right: 0,
     },
@@ -450,15 +450,33 @@ export default function DashboardPage() {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { color: '#64748b', fontSize: 10, formatter: (v) => v >= 10000 ? (v / 10000) + '万' : v },
+      axisLabel: {
+        color: '#64748b', fontSize: 10,
+        formatter: (v) => v >= 10000 ? (v / 10000).toFixed(0) + '万' : v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v,
+      },
       splitLine: { lineStyle: { color: 'rgba(56, 66, 86, 0.2)', type: 'dashed' } },
     },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'rgba(13, 17, 23, 0.95)',
+      borderColor: 'rgba(34, 211, 238, 0.2)',
+      textStyle: { color: '#e2e8f0', fontSize: 11 },
+      formatter: (params) => {
+        let s = `<b>${params[0].axisValue}</b><br/>`;
+        params.forEach(p => {
+          const v = p.value >= 10000 ? (p.value / 10000).toFixed(1) + '万' : p.value.toLocaleString();
+          s += `${p.marker} ${p.seriesName}: ${v}<br/>`;
+        });
+        return s;
+      },
+    },
     series: [
-      { name: '播放量', type: 'bar', data: data.contentPerformance.views, barWidth: 12, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#22d3ee' }, { offset: 1, color: '#0891b2' }] }, borderRadius: [4, 4, 0, 0] } },
-      { name: '点赞数', type: 'bar', data: data.contentPerformance.likes, barWidth: 12, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1d4ed8' }] }, borderRadius: [4, 4, 0, 0] } },
-      { name: '分享数', type: 'bar', data: data.contentPerformance.shares, barWidth: 12, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#a78bfa' }, { offset: 1, color: '#7c3aed' }] }, borderRadius: [4, 4, 0, 0] } },
+      { name: '播放量', type: 'bar', data: data.contentPerformance.views, barWidth: 10, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#22d3ee' }, { offset: 1, color: '#0891b2' }] }, borderRadius: [4, 4, 0, 0] } },
+      { name: '点赞数', type: 'bar', data: data.contentPerformance.likes, barWidth: 10, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1d4ed8' }] }, borderRadius: [4, 4, 0, 0] } },
+      { name: '评论数', type: 'bar', data: data.contentPerformance.comments || [], barWidth: 10, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#f59e0b' }, { offset: 1, color: '#d97706' }] }, borderRadius: [4, 4, 0, 0] } },
+      { name: '分享数', type: 'bar', data: data.contentPerformance.shares, barWidth: 10, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#a78bfa' }, { offset: 1, color: '#7c3aed' }] }, borderRadius: [4, 4, 0, 0] } },
     ],
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     animationDuration: 1000,
   }), [data.contentPerformance]);
 
