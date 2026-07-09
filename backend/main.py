@@ -211,6 +211,7 @@ from analytics.router import router as analytics_router
 from archive.router import router as archive_router
 from daily_digest.router import router as daily_digest_router
 from platforms.sync_router import router as platform_sync_router
+from enterprise.router import router as enterprise_router
 
 app.include_router(auth_router)
 app.include_router(workflow_router)
@@ -225,6 +226,7 @@ app.include_router(analytics_router)
 app.include_router(archive_router)
 app.include_router(daily_digest_router)
 app.include_router(platform_sync_router)
+app.include_router(enterprise_router)
 
 # ── 请求计时中间件 ────────────────────────────────────────
 
@@ -890,4 +892,4 @@ async def get_content_metrics(post_id: str, platform: str = "xiaohongshu"):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8009, reload=True)

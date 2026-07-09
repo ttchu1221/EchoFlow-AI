@@ -31,7 +31,7 @@ stop() {
     fi
 
     # 兜底: 按端口杀进程
-    for port in 8000 3000; do
+    for port in 8009 3009; do
         pid=$(lsof -ti:$port 2>/dev/null)
         if [ -n "$pid" ]; then
             kill $pid 2>/dev/null
@@ -59,22 +59,22 @@ mongosh --eval "db.runCommand({ping:1})" --quiet >/dev/null 2>&1 || { echo -e "$
 echo -e "${GREEN}  ✓ MongoDB & Redis 正常${NC}"
 
 # ── 启动后端 ──────────────────────────────────────────────
-echo -e "${CYAN}🚀 启动后端 (FastAPI :8000)...${NC}"
+echo -e "${CYAN}🚀 启动后端 (FastAPI :8009)...${NC}"
 cd "$BACKEND_DIR"
-"$CONDA_ENV/bin/python" -m uvicorn main:app --host 0.0.0.0 --port 8000 &
+"$CONDA_ENV/bin/python" -m uvicorn main:app --host 0.0.0.0 --port 8009 &
 BACKEND_PID=$!
 
 for i in $(seq 1 15); do
-    curl -s http://127.0.0.1:8000/docs -o /dev/null 2>/dev/null && break
+    curl -s http://127.0.0.1:8009/docs -o /dev/null 2>/dev/null && break
     sleep 1
 done
 echo -e "${GREEN}  ✓ 后端已启动 (PID $BACKEND_PID)${NC}"
 
 # ── 启动前端 ──────────────────────────────────────────────
-echo -e "${CYAN}🚀 启动前端 (Vite :3000)...${NC}"
+echo -e "${CYAN}🚀 启动前端 (Vite :3009)...${NC}"
 cd "$FRONTEND_DIR"
 export PATH="$CONDA_ENV/bin:$PATH"
-npx vite --port 3000 &
+npx vite --port 3009 &
 FRONTEND_PID=$!
 
 sleep 3
@@ -86,9 +86,9 @@ echo "$FRONTEND_PID" >> "$PIDFILE"
 echo ""
 echo -e "${GREEN}════════════════════════════════════════${NC}"
 echo -e "${GREEN}  ✅ EchoFlow AI 已启动${NC}"
-echo -e "${GREEN}  🌐 前端: http://localhost:3000${NC}"
-echo -e "${GREEN}  📡 后端: http://localhost:8000${NC}"
-echo -e "${GREEN}  📚 API:  http://localhost:8000/docs${NC}"
+echo -e "${GREEN}  🌐 前端: http://localhost:3009${NC}"
+echo -e "${GREEN}  📡 后端: http://localhost:8009${NC}"
+echo -e "${GREEN}  📚 API:  http://localhost:8009/docs${NC}"
 echo -e "${GREEN}────────────────────────────────────────${NC}"
 echo -e "${GREEN}  ⏹ 停止:  ./start.sh stop${NC}"
 echo -e "${GREEN}  ⏹ 或:    Ctrl+C${NC}"

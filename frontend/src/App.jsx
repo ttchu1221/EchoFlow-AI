@@ -1,109 +1,58 @@
 import { useState, lazy, Suspense, useEffect } from 'react';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import TitleGenerator from './components/TitleGenerator';
-import TitleOptimizer from './components/TitleOptimizer';
-import TrendPanel from './components/TrendPanel';
-import FeedbackPanel from './components/FeedbackPanel';
-import ScriptPanel from './components/ScriptPanel';
-import CoverPanel from './components/CoverPanel';
-import PublishPanel from './components/PublishPanel';
-import PipelinePanel from './components/PipelinePanel';
-import AnalyticsPanel from './components/AnalyticsPanel';
-import HistoryPanel from './components/HistoryPanel';
-import HotSearchPanel from './components/HotSearchPanel';
-import StrategyPanel from './components/StrategyPanel';
-import GrowthLoopPanel from './components/GrowthLoopPanel';
-import PublishExecPanel from './components/PublishExecPanel';
-import AccountsPanel from './components/AccountsPanel';
-// v1.4: 新增组件
 import LoginPage from './components/LoginPage';
-import ContentReviewPanel from './components/ContentReviewPanel';
-import SchedulePanel from './components/SchedulePanel';
-import CostDashboard from './components/CostDashboard';
-import ABTestPanel from './components/ABTestPanel';
-import CompetitorPanel from './components/CompetitorPanel';
-import TeamPanel from './components/TeamPanel';
-import OnboardingGuide from './components/OnboardingGuide';
-import DailyDigestPanel from './components/DailyDigestPanel';
-import PlatformSyncPanel from './components/PlatformSyncPanel';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
 
-const DashboardPage = lazy(() => import('./components/DashboardPage'));
+const EnterpriseDashboard = lazy(() => import('./components/EnterpriseDashboard'));
+const AICOOPage = lazy(() => import('./components/AICOOPage'));
+const AgentsPage = lazy(() => import('./components/AgentsPage'));
+const GrowthBrainPage = lazy(() => import('./components/GrowthBrainPage'));
+const ToolsPage = lazy(() => import('./components/ToolsPage'));
+const KnowledgePage = lazy(() => import('./components/KnowledgePage'));
+const AIAssistantPage = lazy(() => import('./components/AIAssistantPage'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
 
 const NAV_ITEMS = [
-  { id: 'dashboard',   label: '数据大屏', icon: '🌐', group: '总览' },
-  { id: 'hot',         label: '实时热搜', icon: '🔥', group: '数据' },
-  { id: 'trends',      label: '趋势分析', icon: '📊', group: '数据' },
-  { id: 'competitor',  label: '竞品监控', icon: '👁', group: '数据' },
-  { id: 'daily_digest',label: '每日热点', icon: '📰', group: '数据' },
-  { id: 'strategy',    label: '策略中心', icon: '🧠', group: '策略' },
-  { id: 'generate',    label: '标题生成', icon: '✍️', group: '创作' },
-  { id: 'optimize',    label: '标题优化', icon: '🔧', group: '创作' },
-  { id: 'script',      label: '脚本生成', icon: '📝', group: '创作' },
-  { id: 'cover',       label: '封面设计', icon: '🎨', group: '创作' },
-  { id: 'feedback',    label: '评论分析', icon: '💬', group: '运营' },
-  { id: 'review',      label: '内容审核', icon: '📋', group: '运营' },
-  { id: 'publish',     label: '发布策略', icon: '📡', group: '运营' },
-  { id: 'publish_exec',label: '多平台发布', icon: '🚀', group: '运营' },
-  { id: 'pipeline',    label: '全流程',   icon: '⚡', group: '运营' },
-  { id: 'schedule',    label: '定时任务', icon: '⏰', group: '运营' },
-  { id: 'abtest',      label: 'A/B 测试', icon: '🧪', group: '增长' },
-  { id: 'analytics',   label: '数据分析', icon: '📈', group: '增长' },
-  { id: 'growth_loop', label: '增长闭环', icon: '🔄', group: '增长' },
-  { id: 'history',     label: '历史记录', icon: '📜', group: '增长' },
-  { id: 'cost',        label: '成本控制', icon: '💰', group: '设置' },
-  { id: 'accounts',    label: '账号管理', icon: '🔗', group: '设置' },
-  { id: 'platform_sync', label: '平台同步', icon: '🔌', group: '设置' },
-  { id: 'team',        label: '团队管理', icon: '👥', group: '设置' },
+  { id: 'dashboard',   label: '驾驶舱',   icon: '🌐', group: '核心' },
+  { id: 'assistant',   label: 'AI 助手',  icon: '💬', group: '核心' },
+  { id: 'coo',         label: 'AI COO',  icon: '🤖', group: '核心' },
+  { id: 'agents',      label: '智能体',   icon: '⚡', group: '核心' },
+  { id: 'brain',       label: '增长大脑', icon: '🧠', group: '增长' },
+  { id: 'tools',       label: '工具箱',   icon: '🛠️', group: '增长' },
+  { id: 'knowledge',   label: '知识中心', icon: '📚', group: '学习' },
+  { id: 'settings',    label: '系统设置', icon: '⚙️', group: '系统' },
 ];
 
-const GROUPS = ['总览', '数据', '策略', '创作', '运营', '增长', '设置'];
+const GROUPS = ['核心', '增长', '学习', '系统'];
 
-const PANEL_MAP = {
-  dashboard:     DashboardPage,
-  hot:           HotSearchPanel,
-  generate:      TitleGenerator,
-  optimize:      TitleOptimizer,
-  trends:        TrendPanel,
-  strategy:      StrategyPanel,
-  feedback:      FeedbackPanel,
-  script:        ScriptPanel,
-  cover:         CoverPanel,
-  publish:       PublishPanel,
-  publish_exec:  PublishExecPanel,
-  pipeline:      PipelinePanel,
-  analytics:     AnalyticsPanel,
-  growth_loop:   GrowthLoopPanel,
-  history:       HistoryPanel,
-  accounts:      AccountsPanel,
-  // v1.4 新增
-  review:        ContentReviewPanel,
-  schedule:      SchedulePanel,
-  cost:          CostDashboard,
-  abtest:        ABTestPanel,
-  competitor:    CompetitorPanel,
-  team:          TeamPanel,
-  daily_digest:  DailyDigestPanel,
-  platform_sync: PlatformSyncPanel,
+const PAGE_MAP = {
+  dashboard:  EnterpriseDashboard,
+  assistant:  AIAssistantPage,
+  coo:        AICOOPage,
+  agents:     AgentsPage,
+  brain:      GrowthBrainPage,
+  tools:      ToolsPage,
+  knowledge:  KnowledgePage,
+  settings:   SettingsPage,
 };
 
-// 路由 ID 到导航 ID 的映射
-const ROUTE_TO_NAV = {
-  '/': 'dashboard',
-  '/accounts': 'accounts',
-  '/pipeline': 'pipeline',
-  '/trends': 'trends',
-  '/schedules': 'schedule',
-  '/team': 'team',
-};
+function LoadingFallback() {
+  return (
+    <div className="flex items-center justify-center h-screen dashboard-container">
+      <div className="text-center">
+        <div className="inline-block w-12 h-12 border-4 border-brand-500/30 border-t-brand-400 rounded-full animate-spin mb-4" />
+        <p className="text-txt-secondary text-sm">加载中...</p>
+      </div>
+    </div>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [active, setActive] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [authView, setAuthView] = useState('login');
 
-  // 检查本地存储的登录状态
   useEffect(() => {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -131,83 +80,117 @@ export default function App() {
     setActive('dashboard');
   };
 
-  const handleNavigate = (route) => {
-    const navId = ROUTE_TO_NAV[route];
-    if (navId) setActive(navId);
-  };
-
-  // 未登录 → 显示登录页
   if (!user || !token) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
-  const Panel = PANEL_MAP[active] || DashboardPage;
-  const isDashboard = active === 'dashboard';
-
-  if (isDashboard) {
+    if (authView === 'forgotPassword') {
+      return <ForgotPasswordPage onBack={() => setAuthView('login')} />;
+    }
     return (
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar
-          items={NAV_ITEMS}
-          groups={GROUPS}
-          active={active}
-          onSelect={setActive}
-          open={sidebarOpen}
-          onToggle={() => setSidebarOpen(!sidebarOpen)}
-        />
-        <div className={`flex-1 min-w-0 overflow-auto transition-[padding] duration-300 ${sidebarOpen ? 'pl-64' : 'pl-0'}`}>
-          {!sidebarOpen && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="fixed top-4 left-4 z-50 p-2 rounded-xl bg-panel-50/80 backdrop-blur-sm border border-panel-border text-txt-muted hover:text-txt-primary hover:bg-panel-100 transition-colors"
-              title="展开侧边栏"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-              </svg>
-            </button>
-          )}
-          <Suspense fallback={
-            <div className="flex items-center justify-center h-screen bg-panel">
-              <div className="text-center">
-                <div className="inline-block w-10 h-10 border-4 border-brand-500/30 border-t-brand-400 rounded-full animate-spin mb-4" />
-                <p className="text-txt-secondary text-sm">数据大屏加载中...</p>
-              </div>
-            </div>
-          }>
-            <OnboardingGuide onNavigate={handleNavigate} />
-            <DashboardPage user={user} onLogout={handleLogout} />
-          </Suspense>
-        </div>
-      </div>
+      <LoginPage
+        onLogin={handleLogin}
+        onForgotPassword={() => setAuthView('forgotPassword')}
+      />
     );
   }
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-panel grid-bg">
-      <Sidebar
-        items={NAV_ITEMS}
-        groups={GROUPS}
-        active={active}
-        onSelect={setActive}
-        open={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-      />
+  const Page = PAGE_MAP[active] || EnterpriseDashboard;
 
-      <div className="flex flex-1 flex-col min-w-0">
-        <Header
-          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
-          sidebarOpen={sidebarOpen}
-          user={user}
-          onLogout={handleLogout}
-        />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <OnboardingGuide onNavigate={handleNavigate} />
-            <Panel />
+  return (
+    <div className="flex h-screen overflow-hidden dashboard-container">
+      {/* 侧边栏 */}
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 flex-shrink-0 overflow-hidden`}>
+        <div className="w-64 h-full flex flex-col bg-panel-50/80 backdrop-blur-xl border-r border-panel-border">
+          {/* Logo */}
+          <div className="p-5 border-b border-panel-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-[0_0_15px_rgba(34,211,138,0.3)]">
+                E
+              </div>
+              <div>
+                <h1 className="text-base font-bold text-white">EchoFlow AI</h1>
+                <p className="text-xs text-brand-400">Enterprise v3.0</p>
+              </div>
+            </div>
           </div>
-        </main>
-      </div>
+
+          {/* 导航 */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {GROUPS.map((group) => (
+              <div key={group} className="mb-2">
+                <p className="px-3 py-2 text-xs font-semibold text-txt-muted uppercase tracking-wider">{group}</p>
+                {NAV_ITEMS.filter(item => item.group === group).map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActive(item.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
+                      active === item.id
+                        ? 'bg-brand-500/15 text-brand-300 font-medium shadow-[0_0_10px_rgba(34,211,238,0.1)]'
+                        : 'text-txt-secondary hover:bg-panel-100 hover:text-txt-primary'
+                    }`}
+                  >
+                    <span className="text-lg">{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </nav>
+
+          {/* 底部用户信息 */}
+          <div className="p-4 border-t border-panel-border">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center justify-center">
+                <span className="text-sm">👤</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{user.username || 'Admin'}</p>
+                <p className="text-xs text-txt-muted">{user.role || '管理员'}</p>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="p-1.5 rounded-lg text-txt-muted hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                title="退出登录"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* 折叠状态下的展开按钮 */}
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed top-4 left-4 z-50 p-2.5 rounded-xl bg-panel-50/80 backdrop-blur-sm border border-panel-border text-txt-muted hover:text-brand-400 hover:bg-panel-100 transition-colors"
+          title="展开侧边栏"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+      )}
+
+      {/* 主内容区 */}
+      <main className="flex-1 min-w-0 overflow-y-auto">
+        <Suspense fallback={<LoadingFallback />}>
+          <Page />
+        </Suspense>
+      </main>
+
+      {/* 侧边栏折叠按钮 */}
+      {sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="fixed bottom-4 left-4 z-50 p-2 rounded-lg bg-panel-50/60 backdrop-blur-sm border border-panel-border text-txt-muted hover:text-brand-400 transition-colors"
+          title="收起侧边栏"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

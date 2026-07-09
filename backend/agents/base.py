@@ -101,6 +101,9 @@ _PROVIDER_CONFIG: dict[str, dict] = {
 }
 
 
+_llm_config_cache: dict | None = None
+
+
 def get_llm(
     provider: Provider | None = None,
     temperature: float = 0.8,
@@ -108,8 +111,30 @@ def get_llm(
 ) -> ChatOpenAI:
     """获取指定提供商的 LLM 实例。
 
+    优先从 MongoDB llm_config 读取（前端热更新），否则 fallback 到 .env。
     所有 API 均兼容 OpenAI 协议，统一用 ChatOpenAI 封装。
     """
+    global _llm_config_cache
+
+    # 尝试从 enterprise/router 的内存缓存读取运行时配置
+    try:
+        from enterprise.router import _llm_config_cache as runtime_cfg
+        if runtime_cfg and runtime_cfg.get("api_key"):
+            _llm_config_cache = runtime_cfg
+    except Exception:
+        pass
+
+    # 如果有运行时配置且未指定 provider，直接使用运行时配置
+    if _llm_config_cache and provider is None and _llm_config_cache.get("api_key"):
+        cfg = _llm_config_cache
+        return ChatOpenAI(
+            model=cfg.get("model", "mimo-v2.5-pro"),
+            api_key=cfg["api_key"],
+            base_url=cfg.get("base_url", ""),
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
     provider = provider or os.getenv("DEFAULT_LLM_PROVIDER", "qwen")  # type: ignore[assignment]
     cfg = _PROVIDER_CONFIG[provider]
 

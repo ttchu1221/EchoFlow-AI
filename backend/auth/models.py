@@ -86,6 +86,18 @@ class PasswordChange(BaseModel):
     new_password: str = Field(..., min_length=6, max_length=128)
 
 
+class ForgotPasswordRequest(BaseModel):
+    """忘记密码 — 请求重置"""
+    username: str
+
+
+class ResetPasswordRequest(BaseModel):
+    """忘记密码 — 执行重置"""
+    username: str
+    token: str
+    new_password: str = Field(..., min_length=6, max_length=128)
+
+
 def user_to_response(user_doc: dict) -> UserResponse:
     """MongoDB 文档 → 响应模型"""
     role = user_doc.get("role", UserRole.VIEWER)

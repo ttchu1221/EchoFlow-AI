@@ -2,7 +2,7 @@
  * EchoFlow 爆款采集助手 - Background Script
  */
 
-const ECHOFLOW_API = 'http://localhost:8000/api/platform';
+const ECHOFLOW_API = 'http://localhost:8009/api/platform';
 
 // 监听安装事件
 chrome.runtime.onInstalled.addListener(() => {

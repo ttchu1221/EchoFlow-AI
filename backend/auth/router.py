@@ -3,13 +3,15 @@
 
 import time
 import logging
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from passlib.context import CryptContext
 
 from .models import (
     UserCreate, UserLogin, UserResponse, TokenResponse,
-    PasswordChange, UserRole, user_to_response,
+    PasswordChange, ForgotPasswordRequest, ResetPasswordRequest,
+    UserRole, user_to_response,
 )
 from .jwt_handler import create_access_token, create_refresh_token, decode_token
 from .dependencies import get_current_user, require_role
@@ -155,6 +157,88 @@ async def change_password(
     logger.info(f"用户修改密码: {current_user['username']}")
 
     return {"code": 200, "message": "密码修改成功"}
+
+
+@router.post("/forgot-password", response_model=dict)
+async def forgot_password(body: ForgotPasswordRequest):
+    """忘记密码 — 请求重置令牌（自托管模式直接返回令牌）"""
+    users = _get_users_collection()
+    user = await users.find_one({"username": body.username})
+
+    # 不泄露用户是否存在：无论找到与否都返回相同结构
+    if not user:
+        return {
+            "code": 200,
+            "message": "如果该用户存在，重置令牌已生成",
+            "data": {"token": None},
+        }
+
+    # 生成 6 位数字令牌
+    token = f"{secrets.randbelow(1000000):06d}"
+    expires_at = datetime.utcnow() + timedelta(minutes=15)
+
+    await users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {
+            "reset_token": pwd_context.hash(token),
+            "reset_token_expires": expires_at,
+        }},
+    )
+
+    logger.info(f"用户 {body.username} 请求密码重置")
+
+    # 自托管模式：直接返回令牌（生产环境应发送邮件/短信）
+    return {
+        "code": 200,
+        "message": "重置令牌已生成，有效期 15 分钟",
+        "data": {"token": token},
+    }
+
+
+@router.post("/reset-password", response_model=dict)
+async def reset_password(body: ResetPasswordRequest):
+    """忘记密码 — 使用令牌重置密码"""
+    users = _get_users_collection()
+    user = await users.find_one({"username": body.username})
+
+    if not user:
+        raise HTTPException(400, detail={"code": 400, "error": "用户名或令牌错误"})
+
+    stored_hash = user.get("reset_token")
+    expires_at = user.get("reset_token_expires")
+
+    if not stored_hash or not expires_at:
+        raise HTTPException(400, detail={"code": 400, "error": "请先请求重置令牌"})
+
+    if datetime.utcnow() > expires_at:
+        raise HTTPException(400, detail={"code": 400, "error": "令牌已过期，请重新请求"})
+
+    if not pwd_context.verify(body.token, stored_hash):
+        raise HTTPException(400, detail={"code": 400, "error": "用户名或令牌错误"})
+
+    # 重置密码并清除令牌
+    hashed = pwd_context.hash(body.new_password)
+    await users.update_one(
+        {"_id": user["_id"]},
+        {"$set": {"password": hashed},
+         "$unset": {"reset_token": "", "reset_token_expires": ""}},
+    )
+
+    logger.info(f"用户 {body.username} 已通过令牌重置密码")
+
+    # 自动登录
+    role = user.get("role", UserRole.VIEWER)
+    token_data = create_access_token(str(user["_id"]), user["username"], role)
+    user_resp = user_to_response(user)
+
+    return {
+        "code": 200,
+        "message": "密码重置成功",
+        "data": {
+            **token_data,
+            "user": user_resp.model_dump(),
+        },
+    }
 
 
 @router.get("/users", response_model=dict)

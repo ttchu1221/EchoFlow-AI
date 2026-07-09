@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 const API = '/api/auth';
 
-export default function LoginPage({ onLogin }) {
+export default function LoginPage({ onLogin, onForgotPassword }) {
   const [mode, setMode] = useState('login'); // login | register
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -109,7 +109,18 @@ export default function LoginPage({ onLogin }) {
             )}
 
             <div>
-              <label className="block text-sm text-txt-secondary mb-1.5">密码</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-sm text-txt-secondary">密码</label>
+                {mode === 'login' && onForgotPassword && (
+                  <button
+                    type="button"
+                    onClick={onForgotPassword}
+                    className="text-xs text-brand-400 hover:text-brand-300 transition-colors"
+                  >
+                    忘记密码？
+                  </button>
+                )}
+              </div>
               <input
                 type="password"
                 value={password}
