@@ -7,7 +7,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import (
     FeedbackAnalyzeRequest,
     FeedbackAnalyzeResponse,
@@ -45,6 +45,7 @@ SYSTEM_PROMPT = """你是一位内容反馈分析专家，擅长从评论中提�
 }
 ```
 
+⚠️ 重要：所有文本内容（主题、评论示例、建议等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -75,7 +76,7 @@ async def analyze_feedback(
 
     logger.info(f"评论分析智能体: 分析「{req.content_title}」的 {len(req.comments)} 条评论")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])

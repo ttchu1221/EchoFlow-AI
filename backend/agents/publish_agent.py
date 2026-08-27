@@ -7,7 +7,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import (
     PublishPlanRequest,
     PublishPlanResponse,
@@ -45,6 +45,7 @@ SYSTEM_PROMPT = """你是一位内容分发策略专家，精通各社交平台�
 }
 ```
 
+⚠️ 重要：所有文本内容（发布时间理由、标签、文案、策略等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -81,7 +82,7 @@ async def plan_publish(
 
     logger.info(f"发布智能体: 为「{req.title}」制定发布策略")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])

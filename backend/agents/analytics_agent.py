@@ -7,7 +7,7 @@ import logging
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import (
     AnalyticsRequest,
     AnalyticsResponse,
@@ -48,6 +48,7 @@ SYSTEM_PROMPT = """你是一位内容数据分析师，擅长从内容表现数�
 ```
 
 metrics 中的值都是百分比（0-100 之间，保留1位小数）。
+⚠️ 重要：所有文本内容（诊断、建议等）必须用中文输出。
 只输出 JSON，不要输出其他内容。"""
 
 
@@ -84,7 +85,7 @@ async def analyze_performance(
 
     logger.info(f"数据分析智能体: 分析「{req.content_title}」的表现")
 
-    response = await llm.ainvoke([
+    response = await call_llm_with_retry(llm, [
         SystemMessage(content=SYSTEM_PROMPT),
         HumanMessage(content=user_prompt),
     ])

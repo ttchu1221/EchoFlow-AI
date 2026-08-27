@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { runFullPipeline } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 
 const PLATFORMS = [
   { id: 'xiaohongshu', name: '小红书' },
@@ -28,7 +29,7 @@ export default function PipelinePanel() {
     if (!topic.trim()) return;
     setLoading(true);
     try {
-      const data = await runFullPipeline({ topic, platform });
+      const data = await runFullPipeline(withLLMProvider({ topic, platform }));
       setResult(data);
     } catch (e) {
       alert(e.message);

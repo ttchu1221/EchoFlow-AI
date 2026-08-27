@@ -1,4 +1,4 @@
-"""管理智能体 — 负责任务分解和智能体编排"""
+"""管理智能体 — 负责任务分解和智能体编排 (v1.1: 集成策略智能体 + 增长闭环)"""
 
 from __future__ import annotations
 
@@ -15,8 +15,9 @@ from agents import (
     publish_agent,
     analytics_agent,
     memory_agent,
+    strategy_agent,
 )
-from memory.store import save_record
+from memory.store import save_record, save_growth_memory
 from models.schemas import (
     # Phase 1
     OptimizeRequest,
@@ -35,6 +36,8 @@ from models.schemas import (
     CoverGenerateResponse,
     PublishPlanRequest,
     PublishPlanResponse,
+    PublishTime,
+    PromotionStrategy,
     FullPipelineRequest,
     FullPipelineResponse,
     # Phase 4
@@ -42,6 +45,11 @@ from models.schemas import (
     AnalyticsResponse,
     CreatorProfileRequest,
     CreatorProfile,
+    # v1.1
+    StrategyRequest,
+    StrategyResponse,
+    GrowthLoopRequest,
+    GrowthLoopResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -212,15 +220,24 @@ async def run_full_pipeline(
         )
     if isinstance(script_resp, BaseException):
         logger.warning(f"脚本生成失败: {script_resp}")
-        script_resp = ScriptGenerateResponse(ending="", subtitles=[])
+        script_resp = ScriptGenerateResponse(
+            title=best_title, platform=req.platform.value,
+            content_type=req.content_type, sections=[],
+            ending="", subtitles=[],
+        )
     if isinstance(cover_resp, BaseException):
         logger.warning(f"封面生成失败: {cover_resp}")
-        cover_resp = CoverGenerateResponse(cover_texts=[], design_tips=[])
+        cover_resp = CoverGenerateResponse(
+            title=best_title, platform=req.platform.value,
+            cover_texts=[], design_tips=[],
+        )
     if isinstance(publish_resp, BaseException):
         logger.warning(f"发布策略失败: {publish_resp}")
         publish_resp = PublishPlanResponse(
-            publish_time={"best_time": "", "reason": ""},
-            hashtags=[], promotion_strategy=[], platform_tips=[],
+            title=best_title, platform=req.platform.value,
+            publish_time=PublishTime(), hashtags=[],
+            description_template="", promotion_strategy=PromotionStrategy(),
+            platform_tips=[],
         )
 
     trends_resp.request_id = request_id
@@ -259,3 +276,33 @@ async def run_analytics_pipeline(
 async def run_create_profile(req: CreatorProfileRequest) -> CreatorProfile:
     """创建/更新创作者画像"""
     return await memory_agent.create_or_update_profile(req)
+
+
+# ── v1.1: 策略智能体 + 增长闭环 ──────────────────────────
+
+async def run_strategy_pipeline(
+    req: StrategyRequest,
+    platform_config: dict,
+    request_id: str,
+) -> StrategyResponse:
+    """执行策略生成流水线"""
+    logger.info(f"[管理智能体] 启动策略分析 | id={request_id} | 目标={req.growth_goal}")
+    response = await strategy_agent.generate_strategy(req, platform_config)
+    response.request_id = request_id
+    asyncio.create_task(save_record(request_id, "strategy", req.model_dump(mode="json"), response.model_dump(mode="json")))
+    return response
+
+
+async def run_growth_loop_pipeline(
+    req: GrowthLoopRequest,
+    platform_config: dict,
+    request_id: str,
+) -> GrowthLoopResponse:
+    """执行增长反馈闭环"""
+    from workflows.growth_loop import run_growth_loop
+
+    logger.info(f"[管理智能体] 启动增长闭环 | id={request_id} | creator={req.creator_id}")
+    response = await run_growth_loop(req, platform_config)
+    response.request_id = request_id
+    asyncio.create_task(save_record(request_id, "growth_loop", req.model_dump(mode="json"), response.model_dump(mode="json")))
+    return response

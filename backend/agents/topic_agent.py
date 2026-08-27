@@ -8,7 +8,7 @@ from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from agents.base import get_llm, parse_llm_json
+from agents.base import get_llm, parse_llm_json, call_llm_with_retry
 from models.schemas import Platform, TitleGenerateRequest, TitleItem
 
 logger = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ SYSTEM_PROMPT = """你是一位顶级内容运营专家和爆款标题大师。
 - reason: 为什么这个标题有效（一句话）
 - is_optimized: true（表示已经过优化）
 
+⚠️ 重要：所有文本内容（标题、理由、情绪标签等）必须用中文输出。
 只输出 JSON 数组，不要输出其他内容。"""
 
 
@@ -95,7 +96,7 @@ async def generate_titles(
 
     logger.info(f"选题智能体: 为「{req.topic}」生成 {req.count} 个标题")
 
-    response = await llm.ainvoke([system_msg, user_msg])
+    response = await call_llm_with_retry(llm, [system_msg, user_msg])
     content = response.content.strip()
 
     # 尝试解析 JSON

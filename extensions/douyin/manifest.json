@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "EchoFlow 抖音数据助手",
+  "version": "1.0.0",
+  "description": "从抖音创作者平台同步数据到 EchoFlow-AI",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "https://creator.douyin.com/*",
+    "https://www.douyin.com/*",
+    "https://douyin.com/*",
+    "http://localhost:8009/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://creator.douyin.com/*",
+        "https://www.douyin.com/*",
+        "https://douyin.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

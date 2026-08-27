@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { optimizeTitle } from '../api/client';
+import { withLLMProvider } from '../utils/llmProvider';
 
 const PLATFORMS = [
   { id: 'xiaohongshu', name: '小红书' },
@@ -19,7 +20,7 @@ export default function TitleOptimizer() {
     if (!title.trim()) return;
     setLoading(true);
     try {
-      const data = await optimizeTitle({ title, platform });
+      const data = await optimizeTitle(withLLMProvider({ title, platform }));
       setResult(data);
     } catch (e) {
       alert(e.message);

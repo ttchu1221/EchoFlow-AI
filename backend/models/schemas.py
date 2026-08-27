@@ -72,7 +72,7 @@ class TitleGenerateResponse(BaseModel):
     platform: str
     titles: list[TitleItem]
     improvement_summary: str = Field(default="", description="优化总结")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -81,7 +81,7 @@ class OptimizeResponse(BaseModel):
     original_title: str
     optimized_options: list[OptimizedTitle]
     tips: list[str] = Field(default_factory=list, description="优化建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -128,7 +128,7 @@ class TrendAnalyzeResponse(BaseModel):
     trending_topics: list[TrendTopic]
     viral_patterns: list[TrendPattern]
     audience_insights: list[AudienceInsight]
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -166,7 +166,7 @@ class FeedbackAnalyzeResponse(BaseModel):
     sentiment_breakdown: list[SentimentBreakdown]
     key_themes: list[KeyTheme]
     suggestions: list[str] = Field(default_factory=list, description="AI 优化建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -207,7 +207,7 @@ class ScriptGenerateResponse(BaseModel):
     subtitles: list[str] = Field(default_factory=list, description="字幕建议")
     estimated_duration: str = Field(default="", description="预估时长")
     tips: list[str] = Field(default_factory=list, description="拍摄/制作建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -240,7 +240,7 @@ class CoverGenerateResponse(BaseModel):
     platform: str
     cover_texts: list[CoverOption]
     design_tips: list[str] = Field(default_factory=list, description="设计建议")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -277,7 +277,7 @@ class PublishPlanResponse(BaseModel):
     description_template: str = Field(default="", description="描述文案模板")
     promotion_strategy: PromotionStrategy
     platform_tips: list[str] = Field(default_factory=list, description="平台注意事项")
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -327,7 +327,7 @@ class AnalyticsResponse(BaseModel):
     metrics: AnalyticsMetrics
     diagnosis: str = Field(default="", description="AI 诊断")
     suggestions: list[GrowthSuggestion]
-    request_id: str
+    request_id: str = ""
     created_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -397,7 +397,124 @@ class FullPipelineResponse(BaseModel):
     script: ScriptGenerateResponse
     cover: CoverGenerateResponse
     publish: PublishPlanResponse
-    request_id: str
+    request_id: str = ""
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+# ── 策略智能体 (v1.1) ────────────────────────────────────
+
+class StrategyRequest(BaseModel):
+    """策略生成请求 — 系统核心大脑"""
+    growth_goal: str = Field(..., min_length=1, max_length=500, description="增长目标，如：30天增长1万粉丝")
+    niche: str = Field(..., min_length=1, max_length=200, description="领域/赛道，如：AI科研")
+    platform: Platform = Field(default=Platform.XIAOHONGSHU, description="目标平台")
+    current_followers: int = Field(default=0, ge=0, description="当前粉丝数")
+    content_count: int = Field(default=0, ge=0, description="已发布内容数量")
+    time_frame: str = Field(default="30d", description="目标时间范围: 7d / 30d / 90d")
+    creator_profile: str = Field(default="", description="创作者画像描述")
+    llm_provider: Optional[str] = Field(default=None)
+
+
+class CreatorStage(BaseModel):
+    """创作者阶段评估"""
+    stage: str = Field(default="", description="阶段: 冷启动 / 成长期 / 瓶颈期 / 成熟期")
+    score: float = Field(default=0.0, ge=0, le=100, description="阶段评分")
+    description: str = Field(default="", description="阶段特征描述")
+
+
+class ContentDirection(BaseModel):
+    """内容方向建议"""
+    direction: str = Field(default="", description="内容方向名称")
+    description: str = Field(default="", description="方向详细说明")
+    priority: str = Field(default="中", description="优先级: 高 / 中 / 低")
+    expected_impact: str = Field(default="", description="预期效果")
+
+
+class GrowthMilestone(BaseModel):
+    """增长里程碑"""
+    milestone: str = Field(default="", description="里程碑目标")
+    target_value: str = Field(default="", description="目标值")
+    deadline: str = Field(default="", description="预期达成时间")
+    action_items: list[str] = Field(default_factory=list, description="达成所需的行动项")
+
+
+class StrategyResponse(BaseModel):
+    """策略生成响应"""
+    growth_goal: str
+    platform: str
+    creator_stage: CreatorStage
+    content_directions: list[ContentDirection]
+    posting_strategy: dict = Field(default_factory=dict, description="发布策略: 频率、时间、节奏")
+    hook_strategies: list[str] = Field(default_factory=list, description="钩子策略建议")
+    engagement_tactics: list[str] = Field(default_factory=list, description="互动提升策略")
+    growth_milestones: list[GrowthMilestone]
+    risk_alerts: list[str] = Field(default_factory=list, description="风险提示")
+    request_id: str = ""
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+# ── 增长反馈闭环 (v1.1) ──────────────────────────────────
+
+class GrowthLoopRequest(BaseModel):
+    """增长闭环请求 — 触发一轮完整的分析→优化循环"""
+    creator_id: str = Field(..., description="创作者 ID")
+    platform: Platform = Field(default=Platform.XIAOHONGSHU)
+    recent_metrics: dict = Field(default_factory=dict, description="近期表现数据汇总")
+    current_strategy: str = Field(default="", description="当前策略描述")
+    llm_provider: Optional[str] = Field(default=None)
+
+
+class PromptOptimization(BaseModel):
+    """Prompt 优化建议"""
+    target_agent: str = Field(default="", description="目标智能体: topic / script / hook / cover")
+    original_prompt_hint: str = Field(default="", description="原始 Prompt 关键片段")
+    optimized_prompt_hint: str = Field(default="", description="优化后的 Prompt 关键片段")
+    change_reason: str = Field(default="", description="优化原因")
+    expected_impact: str = Field(default="", description="预期效果")
+
+
+class GrowthLoopResponse(BaseModel):
+    """增长闭环响应"""
+    creator_id: str
+    performance_diagnosis: str = Field(default="", description="表现诊断")
+    strategy_adjustments: list[str] = Field(default_factory=list, description="策略调整建议")
+    prompt_optimizations: list[PromptOptimization] = Field(default_factory=list, description="Prompt 优化建议")
+    next_actions: list[str] = Field(default_factory=list, description="下一步行动")
+    confidence_score: float = Field(default=0.0, ge=0, le=1, description="建议置信度")
+    request_id: str = ""
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+# ── 增长记忆 / 策略记忆 (v1.1) ──────────────────────────
+
+class GrowthMemory(BaseModel):
+    """增长记忆 — 记录爆款和失败案例"""
+    id: str = ""
+    creator_id: str = ""
+    content_title: str = ""
+    platform: str = ""
+    content_type: str = ""
+    metrics: dict = Field(default_factory=dict, description="表现数据")
+    outcome: str = Field(default="", description="结果: viral / good / average / poor")
+    success_factors: list[str] = Field(default_factory=list, description="成功因素")
+    failure_reasons: list[str] = Field(default_factory=list, description="失败原因")
+    tags: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.now)
+
+
+class StrategyMemory(BaseModel):
+    """策略记忆 — 记录策略历史和 Prompt 版本"""
+    id: str = ""
+    creator_id: str = ""
+    strategy_name: str = Field(default="", description="策略名称")
+    strategy_description: str = Field(default="", description="策略内容")
+    target_platform: str = ""
+    target_agent: str = Field(default="", description="适用智能体")
+    prompt_version: str = Field(default="", description="Prompt 版本号")
+    prompt_template: str = Field(default="", description="Prompt 模板")
+    performance_before: dict = Field(default_factory=dict, description="优化前表现")
+    performance_after: dict = Field(default_factory=dict, description="优化后表现")
+    status: str = Field(default="active", description="状态: active / archived / testing")
     created_at: datetime = Field(default_factory=datetime.now)
 
 
