@@ -32,8 +32,9 @@ export default function LoginPage({ onLogin, onForgotPassword }) {
         throw new Error(data.detail?.error || data.detail || '操作失败');
       }
 
-      const { access_token, user } = data.data;
+      const { access_token, refresh_token, user } = data.data;
       localStorage.setItem('token', access_token);
+      localStorage.setItem('refresh_token', refresh_token);
       localStorage.setItem('user', JSON.stringify(user));
       onLogin(user, access_token);
     } catch (err) {

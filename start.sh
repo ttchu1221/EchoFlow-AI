@@ -6,7 +6,7 @@
 
 set -e
 
-CONDA_ENV="/opt/anaconda3/envs/qwencode"
+CONDA_ENV="/opt/anaconda3/envs/shopping_agent"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$PROJECT_DIR/backend"
 FRONTEND_DIR="$PROJECT_DIR/frontend"
@@ -61,7 +61,7 @@ echo -e "${GREEN}  ✓ MongoDB & Redis 正常${NC}"
 # ── 启动后端 ──────────────────────────────────────────────
 echo -e "${CYAN}🚀 启动后端 (FastAPI :8009)...${NC}"
 cd "$BACKEND_DIR"
-"$CONDA_ENV/bin/python" -m uvicorn main:app --host 0.0.0.0 --port 8009 &
+PYTHONPATH="$BACKEND_DIR" SMART_COLLECTION_USE_LLM=false "$CONDA_ENV/bin/python" -m uvicorn main:app --host 0.0.0.0 --port 8009 &
 BACKEND_PID=$!
 
 for i in $(seq 1 15); do

@@ -95,22 +95,52 @@ async def delete_profile(profile_id: str) -> bool:
 # ── 内容记忆 ──────────────────────────────────────────────
 
 async def save_content_memory(memory: ContentMemory) -> ContentMemory:
-    """保存一条内容记忆"""
+    """保存一条内容记忆（同步写入 Milvus 向量索引）"""
     doc = memory.model_dump(mode="json")
     await _col("content_memories").insert_one(doc)
+
+    # 同步写入 Milvus 向量索引
+    try:
+        from rag.vector_store import rag_store
+        from langchain_core.documents import Document
+        text = f"{memory.title}\n标签: {', '.join(memory.tags or [])}\n经验: {memory.lessons or ''}"
+        rag_doc = Document(page_content=text, metadata={"creator_id": memory.creator_id or "", "title": memory.title})
+        rag_store.add_documents("content_memories", [rag_doc])
+    except Exception as e:
+        logger.debug(f"[记忆] RAG 索引写入失败（不影响主流程）: {e}")
+
     logger.info(f"内容记忆已保存: {memory.title}")
     return memory
 
 
 async def search_memories(req: MemorySearchRequest) -> list[ContentMemory]:
-    """搜索内容记忆（关键词匹配）"""
+    """搜索内容记忆（优先向量语义搜索，降级为关键词匹配）"""
     col = _col("content_memories")
-    query: dict = {}
 
+    # 1. 尝试 RAG 向量语义搜索
+    try:
+        from rag.vector_store import rag_store
+        docs = rag_store.search("content_memories", req.query, k=req.limit)
+        if docs:
+            # 从向量搜索结果中提取 memory id，再从 MongoDB 获取完整数据
+            titles = [doc.page_content.split("\n")[0].strip() for doc in docs]
+            query: dict = {}
+            if req.creator_id:
+                query["creator_id"] = req.creator_id
+            query["title"] = {"$in": titles}
+            cursor = col.find(query, {"_id": 0}).limit(req.limit)
+            results = await cursor.to_list(length=req.limit)
+            if results:
+                logger.info(f"[记忆搜索] RAG 语义搜索命中 {len(results)} 条")
+                return [ContentMemory(**d) for d in results]
+    except Exception as e:
+        logger.debug(f"[记忆搜索] RAG 不可用，降级为正则: {e}")
+
+    # 2. 降级：MongoDB 正则匹配
+    query: dict = {}
     if req.creator_id:
         query["creator_id"] = req.creator_id
 
-    # MongoDB text search fallback: 用正则匹配标题、标签、经验
     query["$or"] = [
         {"title": {"$regex": req.query, "$options": "i"}},
         {"tags": {"$regex": req.query, "$options": "i"}},

@@ -92,6 +92,22 @@ class PlatformManager:
             {"$set": metrics.model_dump()},
             upsert=True,
         )
+        try:
+            from data_collection.service import record_raw_event
+            await record_raw_event(
+                platform,
+                "published_metrics",
+                {
+                    **metrics.model_dump(),
+                    "platform": platform,
+                    "platform_content_id": post_id,
+                    "post_id": post_id,
+                },
+                entity_type="metrics",
+                entity_id=post_id,
+            )
+        except Exception as e:
+            logger.debug(f"统一采集层写入失败: {e}")
         return metrics
 
     async def sync_all_metrics(self) -> list[ContentMetrics]:

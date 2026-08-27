@@ -127,6 +127,71 @@ async def list_competitor_content(
     }
 
 
+@router.post("/fetch")
+async def fetch_competitor_data(
+    body: dict | None = None,
+    current_user: dict = Depends(require_permission("competitor:manage")),
+):
+    """手动触发竞品内容采集
+
+    请求体（可选）：
+    - competitor_id: 指定采集某个竞品（不传则采集全部）
+    """
+    from competitor.crawler import crawl_all_competitors, fetch_competitor_content
+
+    body = body or {}
+    competitor_id = body.get("competitor_id")
+    limit = int(body.get("limit") or 10)
+
+    if competitor_id:
+        # 单个竞品采集
+        coll = _get_competitor_collection()
+        from bson import ObjectId
+        acc = await coll.find_one({"_id": ObjectId(competitor_id)})
+        if not acc:
+            raise HTTPException(404, detail={"code": 404, "error": "竞品不存在"})
+
+        contents = await fetch_competitor_content(
+            platform=acc.get("platform", ""),
+            account_id=acc.get("account_id", ""),
+            account_name=acc.get("account_name") or acc.get("name", ""),
+            limit=limit,
+        )
+
+        # 存入数据库（去重）
+        content_coll = _get_competitor_content_collection()
+        new_count = 0
+        for content in contents:
+            pid = content.get("platform_content_id", "")
+            if not pid:
+                continue
+            exists = await content_coll.find_one({
+                "competitor_id": competitor_id,
+                "platform_content_id": pid,
+            })
+            if not exists:
+                doc = {
+                    "competitor_id": competitor_id,
+                    "platform": acc.get("platform", ""),
+                    **content,
+                    "fetched_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow(),
+                }
+                await content_coll.insert_one(doc)
+                try:
+                    from data_collection.service import record_raw_event
+                    await record_raw_event(acc.get("platform", ""), "competitor_content", doc)
+                except Exception as e:
+                    logger.debug(f"[竞品采集] 统一采集层写入失败: {e}")
+                new_count += 1
+
+        return {"code": 200, "data": {"fetched": len(contents), "new": new_count, "saved": new_count}}
+    else:
+        # 全量采集
+        result = await crawl_all_competitors()
+        return {"code": 200, "data": result}
+
+
 @router.get("/insights")
 async def competitor_insights(
     platform: Optional[str] = None,

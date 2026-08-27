@@ -62,7 +62,10 @@ async def register(body: UserCreate):
     logger.info(f"用户注册: {body.username}, 角色: {role}")
 
     # 自动登录返回 token
-    token_data = create_access_token(str(result.inserted_id), body.username, role.value if isinstance(role, UserRole) else role)
+    user_id_str = str(result.inserted_id)
+    role_val = role.value if isinstance(role, UserRole) else role
+    token_data = create_access_token(user_id_str, body.username, role_val)
+    refresh = create_refresh_token(user_id_str)
     user_resp = user_to_response(doc)
 
     return {
@@ -70,6 +73,7 @@ async def register(body: UserCreate):
         "message": "注册成功",
         "data": {
             **token_data,
+            "refresh_token": refresh,
             "user": user_resp.model_dump(),
         },
     }
@@ -91,7 +95,9 @@ async def login(body: UserLogin):
     await users.update_one({"_id": user["_id"]}, {"$set": {"last_login": datetime.utcnow()}})
 
     role = user.get("role", UserRole.VIEWER)
-    token_data = create_access_token(str(user["_id"]), user["username"], role)
+    user_id_str = str(user["_id"])
+    token_data = create_access_token(user_id_str, user["username"], role)
+    refresh = create_refresh_token(user_id_str)
     user_resp = user_to_response(user)
 
     logger.info(f"用户登录: {body.username}")
@@ -101,16 +107,24 @@ async def login(body: UserLogin):
         "message": "登录成功",
         "data": {
             **token_data,
+            "refresh_token": refresh,
             "user": user_resp.model_dump(),
         },
     }
 
 
 @router.post("/refresh", response_model=dict)
-async def refresh_token(refresh_token: str):
-    """刷新 access token"""
+async def refresh_token_endpoint(body: dict):
+    """刷新 access token
+
+    请求体: {"refresh_token": "..."}
+    """
+    rt = body.get("refresh_token", "").strip()
+    if not rt:
+        raise HTTPException(400, detail={"code": 400, "error": "refresh_token 不能为空"})
+
     try:
-        payload = decode_token(refresh_token)
+        payload = decode_token(rt)
     except ValueError as e:
         raise HTTPException(401, detail={"code": 401, "error": str(e)})
 

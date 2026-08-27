@@ -100,6 +100,20 @@ async def generate_strategy(
     recent_viral = await get_growth_memories(outcome="viral", limit=5)
     recent_strategies = await get_strategy_memories(status="active", limit=3)
 
+    # RAG 知识库增强：检索行业知识 + 平台规则
+    rag_context = ""
+    try:
+        from rag.vector_store import rag_store
+        rag_query = f"{req.niche} {platform_name} 增长策略"
+        industry_ctx = rag_store.search_with_context("industry_knowledge", rag_query, k=3)
+        platform_ctx = rag_store.search_with_context("platform_rules", f"{platform_name} 算法 推荐规则", k=2)
+        if industry_ctx:
+            rag_context += f"\n**行业知识参考**：\n{industry_ctx}\n"
+        if platform_ctx:
+            rag_context += f"\n**平台规则参考**：\n{platform_ctx}\n"
+    except Exception:
+        pass
+
     # 构建上下文
     context_parts = []
     if growth_stats.get("total", 0) > 0:
@@ -138,7 +152,7 @@ async def generate_strategy(
 
 **历史数据**：
 {history_context}
-
+{rag_context}
 请输出完整的增长策略，包括阶段评估、内容方向、发布策略、钩子策略、互动策略、增长里程碑和风险提示。
 """
 

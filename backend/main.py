@@ -158,6 +158,12 @@ async def lifespan(app: FastAPI):
     from memory import init_mongo, init_redis, close_mongo, close_redis
     try:
         await init_mongo()
+        try:
+            from data_collection.service import ensure_indexes
+            await ensure_indexes()
+            logger.info("[数据采集] 索引已初始化")
+        except Exception as e:
+            logger.warning(f"[数据采集] 索引初始化失败: {e}")
     except Exception as e:
         logger.warning(f"MongoDB 连接失败，将降级为无数据库模式: {e}")
     try:
@@ -170,6 +176,78 @@ async def lifespan(app: FastAPI):
     use_mock = os.getenv("PLATFORM_MOCK", "true").lower() == "true"
     platform_manager = PlatformManager(use_mock=use_mock)
     logger.info(f"平台管理器已初始化 (mock={use_mock})")
+
+    # v1.8: 启动时加载统一模型配置到内存缓存
+    try:
+        from memory import db as _init_db
+        if _init_db is not None:
+            _cfg = await _init_db["llm_config"].find_one({"_id": "active"}, {"_id": 0})
+            if _cfg and _cfg.get("api_key"):
+                import enterprise.router as _ent_router
+                _ent_router._llm_config_cache = _cfg
+                logger.info(f"[统一模型] 已加载配置: model={_cfg.get('model')} provider={_cfg.get('provider')}")
+    except Exception as e:
+        logger.warning(f"[统一模型] 加载配置失败: {e}")
+
+    # v1.5: 初始化 Milvus RAG 向量存储
+    try:
+        from rag.vector_store import rag_store
+        rag_store.initialize()
+    except Exception as e:
+        logger.warning(f"Milvus RAG 初始化失败，RAG 功能不可用: {e}")
+
+    # v1.6: 启动时自动同步热点数据到 RAG + 注册定时同步
+    try:
+        import asyncio
+        from rag.sync import sync_all
+
+        async def _periodic_rag_sync():
+            """每 6 小时自动同步热点数据到 RAG"""
+            while True:
+                await asyncio.sleep(6 * 3600)  # 6 小时
+                try:
+                    await sync_all()
+                except Exception as e:
+                    logger.warning(f"[RAG定时同步] 失败: {e}")
+
+        # 启动时立即同步一次（后台任务，不阻塞启动）
+        asyncio.create_task(sync_all())
+        # 注册定时同步后台任务
+        asyncio.create_task(_periodic_rag_sync())
+        logger.info("[RAG] 定时同步任务已注册（每6小时）")
+    except Exception as e:
+        logger.warning(f"[RAG] 定时同步注册失败: {e}")
+
+    # v1.7: 竞品自动采集（每4小时）+ A/B测试数据采集（每2小时）
+    try:
+        from competitor.crawler import crawl_all_competitors
+        from abtest.collector import collect_abtest_metrics
+
+        async def _periodic_competitor_crawl():
+            """每 4 小时自动采集竞品内容"""
+            await asyncio.sleep(60)  # 启动后 1 分钟再开始
+            while True:
+                try:
+                    await crawl_all_competitors()
+                except Exception as e:
+                    logger.warning(f"[竞品定时采集] 失败: {e}")
+                await asyncio.sleep(4 * 3600)  # 4 小时
+
+        async def _periodic_abtest_collect():
+            """每 2 小时自动采集 A/B 测试变体指标"""
+            await asyncio.sleep(120)  # 启动后 2 分钟再开始
+            while True:
+                try:
+                    await collect_abtest_metrics()
+                except Exception as e:
+                    logger.warning(f"[A/B测试定时采集] 失败: {e}")
+                await asyncio.sleep(2 * 3600)  # 2 小时
+
+        asyncio.create_task(_periodic_competitor_crawl())
+        asyncio.create_task(_periodic_abtest_collect())
+        logger.info("[定时任务] 竞品采集(4h) + A/B测试采集(2h) 已注册")
+    except Exception as e:
+        logger.warning(f"[定时任务] 竞品/A/B采集注册失败: {e}")
 
     yield
 
@@ -212,6 +290,13 @@ from archive.router import router as archive_router
 from daily_digest.router import router as daily_digest_router
 from platforms.sync_router import router as platform_sync_router
 from enterprise.router import router as enterprise_router
+from data_collection.router import router as data_collection_router
+
+try:
+    from rag.router import router as rag_router
+except Exception as e:
+    rag_router = None
+    logger.warning(f"[RAG] 路由加载失败，RAG API 将暂不可用: {e}")
 
 app.include_router(auth_router)
 app.include_router(workflow_router)
@@ -227,6 +312,9 @@ app.include_router(archive_router)
 app.include_router(daily_digest_router)
 app.include_router(platform_sync_router)
 app.include_router(enterprise_router)
+if rag_router is not None:
+    app.include_router(rag_router)
+app.include_router(data_collection_router)
 
 # ── 请求计时中间件 ────────────────────────────────────────
 
@@ -280,30 +368,54 @@ async def health():
 
 @app.get("/api/providers")
 async def get_providers():
-    """返回可用的 LLM 提供商列表（仅包含已配置 API Key 的）"""
-    from agents.base import _PROVIDER_CONFIG
+    """返回当前统一模型配置状态 + 支持的提供商列表"""
+    from agents.base import _PROVIDER_CONFIG, _llm_config_cache
 
     PROVIDER_LABELS = {
         "qwen": "通义千问",
         "deepseek": "DeepSeek",
-        "openai": "GPT-4o",
+        "openai": "OpenAI",
         "mimo": "Mimo",
     }
 
+    # 当前统一模型配置
+    current_model = None
+    try:
+        from enterprise.router import _llm_config_cache as runtime_cfg
+        if runtime_cfg and runtime_cfg.get("api_key"):
+            current_model = {
+                "provider": runtime_cfg.get("provider", ""),
+                "model": runtime_cfg.get("model", ""),
+                "base_url": runtime_cfg.get("base_url", ""),
+                "configured": True,
+            }
+    except Exception:
+        pass
+
+    if current_model is None and _llm_config_cache and _llm_config_cache.get("api_key"):
+        current_model = {
+            "provider": _llm_config_cache.get("provider", ""),
+            "model": _llm_config_cache.get("model", ""),
+            "base_url": _llm_config_cache.get("base_url", ""),
+            "configured": True,
+        }
+
+    # 支持的提供商列表（含 .env 中已配置的 Key）
     providers = []
     for name, cfg in _PROVIDER_CONFIG.items():
         has_key = bool(os.getenv(cfg["env_key"], ""))
-        if not has_key:
-            continue
-        model = os.getenv(cfg["model_env"], cfg["default_model"])
         providers.append({
             "id": name,
             "name": PROVIDER_LABELS.get(name, name),
-            "model": model,
+            "default_model": cfg["default_model"],
+            "has_env_key": has_key,
         })
 
-    default = os.getenv("DEFAULT_LLM_PROVIDER", "qwen")
-    return {"providers": providers, "default": default}
+    return {
+        "current_model": current_model or {"configured": False},
+        "providers": providers,
+        "message": "所有模块统一使用此模型配置" if current_model else "请在系统设置中配置模型",
+    }
 
 
 @app.get("/api/monitoring")

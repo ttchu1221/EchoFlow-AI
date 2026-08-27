@@ -187,7 +187,7 @@ def build_data_context(platform_data: dict[str, list[dict]]) -> str:
 
 
 async def generate_daily_digest(
-    llm_provider: str = "mimo",
+    llm_provider: str | None = None,
     focus_topic: str = "",
     track: str = "",
     db=None,
@@ -195,7 +195,7 @@ async def generate_daily_digest(
     """生成每日热点总结
 
     Args:
-        llm_provider: LLM 提供商
+        llm_provider: 已废弃，统一使用用户配置的模型
         focus_topic: 可选的关注领域（如"美妆"、"科技"），会额外分析该领域相关热点
         track: 赛道筛选（如"美妆"、"科技"、"游戏"），只分析该赛道的热点
         db: MongoDB 数据库实例（用于存储结果）
@@ -235,12 +235,24 @@ async def generate_daily_digest(
 
 {data_context}
 {focus_prompt}
-生成日期：{today}
+"""
+
+    # RAG 行业知识检索：提供历史热点对比
+    try:
+        from rag.vector_store import rag_store
+        rag_query = focus_topic or track or "内容创作 热点 趋势"
+        industry_ctx = rag_store.search_with_context("industry_knowledge", rag_query, k=2)
+        if industry_ctx:
+            user_prompt += f"\n## 行业知识参考（用于对比分析）：\n{industry_ctx}\n"
+    except Exception:
+        pass
+
+    user_prompt += f"""生成日期：{today}
 请确保每个话题都附上原始来源链接（urls 字段），并输出你的 AI 深度观点（ai_take 和 ai_commentary）。
 """
 
     # 3. 调用 LLM
-    llm = get_llm(provider=llm_provider, temperature=0.6, max_tokens=8192)
+    llm = get_llm(temperature=0.6, max_tokens=8192)  # 统一使用用户配置的模型
     logger.info("[每日热点] 调用 LLM 分析中...")
 
     response = await call_llm_with_retry(llm, [
@@ -289,5 +301,14 @@ async def generate_daily_digest(
         logger.info(f"[每日热点] 已导出到 Obsidian: {obsidian_path}")
     except Exception as e:
         logger.warning(f"[每日热点] Obsidian 导出失败: {e}")
+
+    # 7. 自动同步到 RAG 知识库
+    try:
+        from rag.sync import sync_digest_to_rag, sync_hot_search_to_rag
+        await sync_digest_to_rag(result)
+        await sync_hot_search_to_rag(limit=30)
+        logger.info("[每日热点] RAG 知识库已同步")
+    except Exception as e:
+        logger.warning(f"[每日热点] RAG 同步失败（不影响主流程）: {e}")
 
     return result

@@ -37,12 +37,12 @@ async def generate_digest(body: dict | None = None):
     """生成今日热点总结
 
     请求体（可选）：
-    - llm_provider: LLM 提供商（默认 mimo）
+    - llm_provider: 已废弃，统一使用用户配置的模型
     - focus_topic: 关注领域（如 "美妆"、"科技"）
     - track: 赛道筛选（如 "美妆"、"科技"、"游戏"），只分析该赛道热点
     """
     body = body or {}
-    llm_provider = body.get("llm_provider", "mimo")
+    llm_provider = body.get("llm_provider")  # None = 使用统一模型配置
     focus_topic = body.get("focus_topic", "")
     track = body.get("track", "")
 

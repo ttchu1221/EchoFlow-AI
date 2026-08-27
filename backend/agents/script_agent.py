@@ -91,7 +91,19 @@ async def generate_script(
 - **创作者画像**：{req.creator_profile or '（通用）'}
 - **核心要点**：
 {key_points_text}
+"""
 
+    # RAG 爆款脚本模板检索
+    try:
+        from rag.vector_store import rag_store
+        rag_query = f"{req.title} {content_type_label} 脚本模板"
+        viral_ctx = rag_store.search_with_context("viral_cases", rag_query, k=2)
+        if viral_ctx:
+            user_prompt += f"\n## 爆款脚本参考（来自知识库）：\n{viral_ctx}\n"
+    except Exception:
+        pass
+
+    user_prompt += """
 请创作一个完整的脚本，包含：
 1. 强有力的开场钩子 (hook)
 2. 分段的脚本内容（每段标注类型、时长、拍摄提示）

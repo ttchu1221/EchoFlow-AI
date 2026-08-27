@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
 import { getKnowledge, getKnowledgeCategories, createKnowledge } from '../api/client';
+import RAGPanel from './RAGPanel';
+
+const TABS = [
+  { id: 'knowledge', label: '知识条目', icon: '📚' },
+  { id: 'rag', label: '知识库管理', icon: '🧠' },
+];
 
 export default function KnowledgePage() {
+  const [activeTab, setActiveTab] = useState('knowledge');
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -67,15 +74,40 @@ export default function KnowledgePage() {
 
   return (
     <div className="dashboard-container min-h-screen p-6">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold text-white dashboard-glow-text">知识中心</h1>
-          <p className="text-txt-secondary mt-1">企业知识库 · 经验积累 · 持续学习</p>
+          <p className="text-txt-secondary mt-1">企业知识库 · RAG 向量检索 · 持续学习</p>
         </div>
-        <button onClick={() => setShowCreate(!showCreate)} className="btn-primary">
-          {showCreate ? '取消' : '+ 新建知识'}
-        </button>
+        {activeTab === 'knowledge' && (
+          <button onClick={() => setShowCreate(!showCreate)} className="btn-primary">
+            {showCreate ? '取消' : '+ 新建知识'}
+          </button>
+        )}
       </div>
+
+      {/* Tab 切换 */}
+      <div className="flex gap-2 mb-6">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              activeTab === tab.id
+                ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                : 'bg-panel-100 text-txt-secondary border border-panel-border hover:bg-panel-200'
+            }`}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab 内容 */}
+      {activeTab === 'rag' ? (
+        <RAGPanel />
+      ) : (
+        <>
 
       {/* 新建知识表单 */}
       {showCreate && (
@@ -147,7 +179,6 @@ export default function KnowledgePage() {
         ))}
       </div>
 
-      {/* 知识列表 */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3,4,5,6].map(i => <div key={i} className="shimmer h-40 rounded-xl" />)}
@@ -176,6 +207,8 @@ export default function KnowledgePage() {
           <p className="text-lg font-medium text-txt-secondary">暂无知识条目</p>
           <p className="text-sm text-txt-muted mt-1">点击右上角「新建知识」添加</p>
         </div>
+      )}
+        </>
       )}
     </div>
   );

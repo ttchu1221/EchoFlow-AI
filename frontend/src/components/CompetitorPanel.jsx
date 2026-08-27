@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API = '/api/competitor';
+import { competitorAccounts, competitorInsights, competitorAdd, competitorFetch, competitorRemove } from '../api/client';
 
 export default function CompetitorPanel() {
   const [accounts, setAccounts] = useState([]);
@@ -12,16 +11,12 @@ export default function CompetitorPanel() {
   const load = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
-      const [accRes, insRes] = await Promise.all([
-        fetch(`${API}/accounts`, { headers }),
-        fetch(`${API}/insights?days=7`, { headers }),
+      const [accData, insData] = await Promise.all([
+        competitorAccounts(),
+        competitorInsights(7),
       ]);
-      const accData = await accRes.json();
-      const insData = await insRes.json();
-      if (accData.code === 200) setAccounts(accData.data || []);
-      if (insData.code === 200) setInsights(insData.data?.insights || []);
+      setAccounts(accData.data || []);
+      setInsights(insData.data?.insights || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -30,15 +25,7 @@ export default function CompetitorPanel() {
 
   const addAccount = async () => {
     try {
-      const res = await fetch(`${API}/accounts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
+      const data = await competitorAdd(form);
       if (data.code === 200) {
         setShowAdd(false);
         setForm({ name: '', platform: 'douyin', account_id: '', tags: [] });
@@ -46,27 +33,22 @@ export default function CompetitorPanel() {
       } else {
         alert(data.detail?.error || '添加失败');
       }
-    } catch (e) { alert('请求失败'); }
+    } catch (e) { alert(e.message || '请求失败'); }
   };
 
   const fetchContent = async (id) => {
-    const res = await fetch(`${API}/fetch/${id}?limit=10`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    });
-    const data = await res.json();
-    if (data.code === 200) {
-      alert(`采集完成: ${data.data.saved} 条新内容`);
-      load();
-    }
+    try {
+      const data = await competitorFetch(id);
+      if (data.code === 200) {
+        alert(`采集完成: 获取 ${data.data.fetched || 0} 条，新增 ${data.data.saved || data.data.new || 0} 条`);
+        load();
+      }
+    } catch (e) { alert(e.message || '采集失败'); }
   };
 
   const remove = async (id) => {
     if (!confirm('确认删除?')) return;
-    await fetch(`${API}/accounts/${id}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-    });
+    await competitorRemove(id);
     load();
   };
 

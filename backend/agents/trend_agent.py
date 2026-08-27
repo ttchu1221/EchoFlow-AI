@@ -120,7 +120,19 @@ async def analyze_trends(
 - **平台内容风格**：{platform_info.get('content_style', '')}
 
 {real_data_context}
+"""
 
+    # RAG 行业知识检索：增强趋势分析深度
+    try:
+        from rag.vector_store import rag_store
+        rag_query = f"{req.topic} 趋势 增长 平台算法"
+        industry_ctx = rag_store.search_with_context("industry_knowledge", rag_query, k=2)
+        if industry_ctx:
+            user_prompt += f"\n## 行业知识参考：\n{industry_ctx}\n"
+    except Exception:
+        pass
+
+    user_prompt += f"""
 请结合以上**真实平台数据**和你的专业知识，输出：
 1. 5个最热门的趋势话题（优先从真实热搜中筛选与「{req.topic}」相关的，热度评分参考真实数据）
 2. 3个可复用的爆款内容模式

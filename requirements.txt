@@ -22,3 +22,7 @@ PyJWT>=2.9.0
 passlib[bcrypt]>=1.7.4
 bcrypt==4.0.1
 pymongo>=4.8.0
+# RAG (Milvus)
+langchain-milvus>=0.1.1,<0.2.0
+pymilvus>=2.4.0
+pypdf>=4.0.0

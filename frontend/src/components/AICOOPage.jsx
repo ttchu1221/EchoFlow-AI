@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { cooDispatch, executeCooTask, cooAnalyze, cooChat } from '../api/client';
+import { cooDispatch, executeCooTask, getCooTask, cooAnalyze, cooChat } from '../api/client';
 
 const GOAL_PRESETS = [
   { label: 'GMV增长', goal: '本周GMV提升30%', icon: '📈' },
@@ -27,7 +27,19 @@ export default function AICOOPage() {
     try {
       setExecuting(true);
       const result = await cooDispatch(goal);
-      setTask(result);
+      setTask({ ...result, goal, progress: [] });
+      // 轮询任务状态，每 3 秒更新一次
+      const pollInterval = setInterval(async () => {
+        try {
+          const updated = await getCooTask(result.task_id);
+          setTask(updated);
+          if (updated.status === 'completed' || updated.status === 'failed') {
+            clearInterval(pollInterval);
+          }
+        } catch { clearInterval(pollInterval); }
+      }, 3000);
+      // 5 分钟后停止轮询
+      setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
     } catch (e) {
       console.error('调度失败:', e);
     } finally {
@@ -40,7 +52,19 @@ export default function AICOOPage() {
     try {
       setExecuting(true);
       const result = await executeCooTask(task.task_id);
-      setTask(result);
+      setTask(prev => ({ ...prev, ...result }));
+      // 轮询任务状态
+      const tid = result.task_id || task.task_id;
+      const pollInterval = setInterval(async () => {
+        try {
+          const updated = await getCooTask(tid);
+          setTask(updated);
+          if (updated.status === 'completed' || updated.status === 'failed') {
+            clearInterval(pollInterval);
+          }
+        } catch { clearInterval(pollInterval); }
+      }, 3000);
+      setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
     } catch (e) {
       console.error('执行失败:', e);
     } finally {
@@ -52,14 +76,29 @@ export default function AICOOPage() {
     if (!chatInput.trim() || chatting) return;
     const userMsg = chatInput.trim();
     setChatInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }, { role: 'assistant', content: '' }]);
     setChatting(true);
 
     try {
-      const result = await cooChat(userMsg);
-      setMessages(prev => [...prev, { role: 'assistant', content: result.content || result.analysis || '收到' }]);
+      await cooChat(userMsg, (fullContent) => {
+        // 流式更新最后一条 assistant 消息
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = { role: 'assistant', content: fullContent };
+          return updated;
+        });
+      });
     } catch (e) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '处理失败，请重试' }]);
+      setMessages(prev => {
+        const updated = [...prev];
+        const last = updated[updated.length - 1];
+        if (last?.role === 'assistant' && !last.content) {
+          last.content = '处理失败，请重试';
+        } else {
+          updated.push({ role: 'assistant', content: '处理失败，请重试' });
+        }
+        return updated;
+      });
     } finally {
       setChatting(false);
     }
@@ -74,6 +113,7 @@ export default function AICOOPage() {
     switch (status) {
       case 'completed': return 'bg-emerald-500';
       case 'running': return 'bg-brand-500 animate-pulse';
+      case 'failed': return 'bg-red-500';
       case 'pending': return 'bg-slate-500';
       default: return 'bg-slate-500';
     }
@@ -167,12 +207,12 @@ export default function AICOOPage() {
               <div>
                 <div className="mb-4 p-4 rounded-xl bg-brand-500/10 border border-brand-500/20">
                   <p className="text-sm text-brand-300 font-medium">目标</p>
-                  <p className="text-white mt-1">{task.goal}</p>
+                  <p className="text-white mt-1">{task.goal || goal || '—'}</p>
                 </div>
 
                 {/* 步骤列表 */}
                 <div className="space-y-3 mb-6">
-                  {task.breakdown.map((step, i) => (
+                  {(task.breakdown || []).map((step, i) => (
                     <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-panel-100/50">
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${getStatusColor(step.status)}`}>
                         {step.status === 'completed' ? (
@@ -180,24 +220,27 @@ export default function AICOOPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                         ) : (
-                          <span className="text-xs text-white font-bold">{step.step}</span>
+                          <span className="text-xs text-white font-bold">{step.step || i + 1}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span>{getAgentIcon(step.agent)}</span>
-                          <span className="text-sm font-medium text-white">{step.action}</span>
+                          <span className="text-sm font-medium text-white">{step.action || step.description || '执行步骤'}</span>
                         </div>
                         <p className="text-xs text-txt-muted mt-1">
-                          {step.agent} Agent · 预计 {step.estimated_time}
+                          {step.agent} Agent · {step.status === 'completed' ? '✅ 已完成' : step.status === 'running' ? '⏳ 执行中' : step.status === 'failed' ? '❌ 失败' : `预计 ${step.estimated_time || '—'}`}
                         </p>
+                        {step.result && step.status === 'completed' && (
+                          <p className="text-xs text-txt-secondary mt-1 line-clamp-3">{typeof step.result === 'string' ? step.result.slice(0, 200) : JSON.stringify(step.result).slice(0, 200)}</p>
+                        )}
                       </div>
                     </div>
                   ))}
                 </div>
 
                 {/* 执行按钮 */}
-                {task.status !== 'completed' && (
+                {task.status !== 'completed' && task.status !== 'failed' && (
                   <button
                     onClick={handleExecute}
                     disabled={executing}
@@ -207,10 +250,20 @@ export default function AICOOPage() {
                   </button>
                 )}
 
+                {/* 执行进度日志 */}
+                {task.progress && task.progress.length > 0 && (
+                  <div className="mt-4 p-3 rounded-xl bg-panel-100/50 max-h-32 overflow-y-auto">
+                    <p className="text-xs text-txt-muted mb-2">执行日志</p>
+                    {task.progress.map((p, i) => (
+                      <p key={i} className="text-xs text-txt-secondary">{p}</p>
+                    ))}
+                  </div>
+                )}
+
                 {task.status === 'completed' && task.result && (
                   <div className="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                     <p className="text-sm text-emerald-300 font-medium">✅ 执行完成</p>
-                    <p className="text-txt-secondary text-sm mt-1">{task.result.summary}</p>
+                    <p className="text-txt-secondary text-sm mt-1">{typeof task.result === 'string' ? task.result : (task.result.summary || task.result.message || JSON.stringify(task.result))}</p>
                   </div>
                 )}
               </div>

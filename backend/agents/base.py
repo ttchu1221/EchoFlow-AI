@@ -1,4 +1,4 @@
-"""LLM 抽象层 — 支持 Qwen / DeepSeek / GPT / Mimo 可切换 + 智能路由"""
+"""LLM 抽象层 — 统一模型配置，所有模块使用用户在设置中配置的同一个模型"""
 
 from __future__ import annotations
 
@@ -60,14 +60,9 @@ def _record_agent_call(agent_name: str, success: bool, latency_ms: float):
 Provider = Literal["qwen", "deepseek", "openai", "mimo"]
 TaskType = Literal["classify", "creative", "analysis", "reasoning"]
 
-# ── 智能路由：按任务类型映射最优 Provider ─────────────────
-# 默认全部使用 mimo（已配置有效 key），按需切换
-_TASK_PROVIDER_MAP: dict[str, str] = {
-    "classify": "mimo",
-    "creative": "mimo",
-    "analysis": "mimo",
-    "reasoning": "mimo",
-}
+# ── 统一模型配置 ─────────────────────────────────────────
+# 所有模块统一使用用户在设置中配置的模型，不再按任务类型路由
+# _TASK_PROVIDER_MAP 保留但已废弃，所有类型均走统一配置
 
 _PROVIDER_CONFIG: dict[str, dict] = {
     "qwen": {
@@ -109,10 +104,11 @@ def get_llm(
     temperature: float = 0.8,
     max_tokens: int = 4096,
 ) -> ChatOpenAI:
-    """获取指定提供商的 LLM 实例。
+    """获取统一配置的 LLM 实例。
 
-    优先从 MongoDB llm_config 读取（前端热更新），否则 fallback 到 .env。
-    所有 API 均兼容 OpenAI 协议，统一用 ChatOpenAI 封装。
+    所有模块统一使用用户在设置中配置的模型（MongoDB llm_config）。
+    provider 参数保留兼容但已废弃，不再影响模型选择。
+    如果 MongoDB 无配置，fallback 到 .env 环境变量。
     """
     global _llm_config_cache
 
@@ -124,9 +120,13 @@ def get_llm(
     except Exception:
         pass
 
-    # 如果有运行时配置且未指定 provider，直接使用运行时配置
-    if _llm_config_cache and provider is None and _llm_config_cache.get("api_key"):
+    # 优先使用用户在设置中配置的统一模型
+    if _llm_config_cache and _llm_config_cache.get("api_key"):
         cfg = _llm_config_cache
+        logger.debug(
+            f"使用统一模型配置: model={cfg.get('model', 'N/A')}"
+            f" base_url={cfg.get('base_url', 'N/A')}"
+        )
         return ChatOpenAI(
             model=cfg.get("model", "mimo-v2.5-pro"),
             api_key=cfg["api_key"],
@@ -135,24 +135,24 @@ def get_llm(
             max_tokens=max_tokens,
         )
 
-    provider = provider or os.getenv("DEFAULT_LLM_PROVIDER", "qwen")  # type: ignore[assignment]
-    cfg = _PROVIDER_CONFIG[provider]
+    # Fallback: 从 .env 读取第一个可用的 provider
+    for prov_name, cfg in _PROVIDER_CONFIG.items():
+        api_key = os.getenv(cfg["env_key"], "")
+        if api_key:
+            base_url = os.getenv(cfg["base_url_env"], cfg["default_base_url"])
+            model = os.getenv(cfg["model_env"], cfg["default_model"])
+            logger.info(f"统一配置未设置，fallback 到 {prov_name} (from .env)")
+            return ChatOpenAI(
+                model=model,
+                api_key=api_key,
+                base_url=base_url,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
 
-    api_key = os.getenv(cfg["env_key"], "")
-    base_url = os.getenv(cfg["base_url_env"], cfg["default_base_url"])
-    model = os.getenv(cfg["model_env"], cfg["default_model"])
-
-    if not api_key:
-        raise ValueError(
-            f"未配置 {provider.upper()} API Key，请在 .env 中设置 {cfg['env_key']}"
-        )
-
-    return ChatOpenAI(
-        model=model,
-        api_key=api_key,
-        base_url=base_url,
-        temperature=temperature,
-        max_tokens=max_tokens,
+    raise ValueError(
+        "未配置任何 LLM 模型。请前往 系统设置 → 模型配置 设置 API Key，"
+        "或在 .env 中设置 QWEN_API_KEY / DEEPSEEK_API_KEY / OPENAI_API_KEY / MIMO_API_KEY"
     )
 
 
@@ -162,14 +162,12 @@ def get_smart_llm(
     max_tokens: int = 4096,
     override_provider: str | None = None,
 ) -> ChatOpenAI:
-    """根据任务类型智能选择最优 LLM。
+    """获取统一模型实例（按任务类型自动设定温度）。
 
-    优先使用 override_provider，否则按 task_type 自动路由。
-    温度未指定时按任务类型自动设定。
+    所有任务类型统一使用用户配置的同一模型，仅温度按任务类型自动调整。
+    override_provider 参数保留兼容但已废弃。
     """
-    provider = override_provider or _TASK_PROVIDER_MAP.get(task_type, "qwen")
-
-    # 自动设定温度
+    # 自动设定温度（唯一保留按任务类型区分的逻辑）
     if temperature is None:
         temperature = {
             "classify": 0.3,
@@ -178,16 +176,9 @@ def get_smart_llm(
             "reasoning": 0.5,
         }.get(task_type, 0.7)
 
-    logger.info(f"智能路由: task={task_type} → provider={provider} (temp={temperature})")
+    logger.info(f"统一模型调用: task={task_type} (temp={temperature})")
 
-    # 若目标 provider 未配置 API Key，降级到默认 provider
-    cfg = _PROVIDER_CONFIG[provider]
-    if not os.getenv(cfg["env_key"], ""):
-        fallback = os.getenv("DEFAULT_LLM_PROVIDER", "qwen")
-        logger.warning(f"{provider} 未配置 API Key，降级到 {fallback}")
-        provider = fallback
-
-    return get_llm(provider=provider, temperature=temperature, max_tokens=max_tokens)
+    return get_llm(temperature=temperature, max_tokens=max_tokens)
 
 
 def parse_llm_json(content: str) -> dict:

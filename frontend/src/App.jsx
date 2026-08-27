@@ -6,6 +6,7 @@ const EnterpriseDashboard = lazy(() => import('./components/EnterpriseDashboard'
 const AICOOPage = lazy(() => import('./components/AICOOPage'));
 const AgentsPage = lazy(() => import('./components/AgentsPage'));
 const GrowthBrainPage = lazy(() => import('./components/GrowthBrainPage'));
+const DataCollectionPage = lazy(() => import('./components/DataCollectionPage'));
 const ToolsPage = lazy(() => import('./components/ToolsPage'));
 const KnowledgePage = lazy(() => import('./components/KnowledgePage'));
 const AIAssistantPage = lazy(() => import('./components/AIAssistantPage'));
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { id: 'assistant',   label: 'AI 助手',  icon: '💬', group: '核心' },
   { id: 'coo',         label: 'AI COO',  icon: '🤖', group: '核心' },
   { id: 'agents',      label: '智能体',   icon: '⚡', group: '核心' },
+  { id: 'data',        label: '数据采集', icon: '📡', group: '增长' },
   { id: 'brain',       label: '增长大脑', icon: '🧠', group: '增长' },
   { id: 'tools',       label: '工具箱',   icon: '🛠️', group: '增长' },
   { id: 'knowledge',   label: '知识中心', icon: '📚', group: '学习' },
@@ -29,6 +31,7 @@ const PAGE_MAP = {
   assistant:  AIAssistantPage,
   coo:        AICOOPage,
   agents:     AgentsPage,
+  data:       DataCollectionPage,
   brain:      GrowthBrainPage,
   tools:      ToolsPage,
   knowledge:  KnowledgePage,
@@ -74,6 +77,7 @@ export default function App() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setUser(null);
     setToken(null);

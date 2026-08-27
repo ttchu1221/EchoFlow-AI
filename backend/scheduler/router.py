@@ -59,15 +59,16 @@ async def _execute_scheduled_task(task_type: str, params: dict, schedule_id: str
 
     try:
         if task_type == "pipeline":
-            from workflows.growth_loop import run_content_pipeline
-            result = await run_content_pipeline(params.get("platform", "douyin"))
+            from workflows.growth_loop import run_growth_loop
+            result = await run_growth_loop(params.get("platform", "douyin"))
         elif task_type == "strategy":
-            from manager import generate_strategy
-            result = await generate_strategy(params)
+            from agents import manager as agents_manager
+            from models.schemas import StrategyRequest
+            req = StrategyRequest(**params)
+            result = await agents_manager.run_strategy_pipeline(req, {}, schedule_id)
         elif task_type == "collect":
-            from crawlers.data_source import search_content
-            result = await search_content(
-                params.get("keyword", "热门"),
+            from crawlers.data_source import fetch_hot_search
+            result = await fetch_hot_search(
                 params.get("platform", "douyin"),
                 params.get("max_items", 10),
             )

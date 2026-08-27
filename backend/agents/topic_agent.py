@@ -56,7 +56,7 @@ STYLE_PROMPTS = {
 
 
 def _build_user_prompt(req: TitleGenerateRequest, platform_config: dict) -> str:
-    """构建用户提示词"""
+    """构建用户提示词（融合 RAG 爆款案例）"""
     platform_info = platform_config.get(req.platform.value, {})
     title_rules = platform_info.get("title_rules", {})
     hook_types = req.hook_types or title_rules.get("hook_types", [])
@@ -77,9 +77,22 @@ def _build_user_prompt(req: TitleGenerateRequest, platform_config: dict) -> str:
         f"## 可用钩子类型：{', '.join(hook_types)}",
         f"## 平台最佳实践：",
         *[f"- {bp}" for bp in title_rules.get("best_practices", [])],
-        f"",
-        f"## 请生成 {req.count} 个爆款标题方案。",
     ])
+
+    # RAG 爆款案例检索
+    try:
+        from rag.vector_store import rag_store
+        rag_query = f"{req.topic} {platform_info.get('name', '')} 爆款标题"
+        viral_context = rag_store.search_with_context("viral_cases", rag_query, k=3)
+        if viral_context:
+            parts.append(f"")
+            parts.append(f"## 爆款案例参考（来自知识库）：")
+            parts.append(viral_context)
+    except Exception:
+        pass
+
+    parts.append(f"")
+    parts.append(f"## 请生成 {req.count} 个爆款标题方案。")
 
     return "\n".join(parts)
 

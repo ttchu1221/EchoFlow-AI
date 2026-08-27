@@ -206,3 +206,72 @@ async def analyze_ab_test(test_id: str, current_user: dict = Depends(get_current
             analysis["improvement"] = round((best_val - worst_val) / worst_val * 100, 1)
 
     return {"code": 200, "data": analysis}
+
+
+@router.post("/collect")
+async def trigger_data_collection(
+    current_user: dict = Depends(require_permission("abtest:manage")),
+):
+    """手动触发 A/B 测试数据采集
+    
+    立即从平台拉取所有运行中测试的变体指标，并自动判定到期测试的优胜者。
+    """
+    from abtest.collector import collect_abtest_metrics
+    result = await collect_abtest_metrics()
+    return {"code": 200, "data": result}
+
+
+@router.post("/{test_id}/update-results")
+async def update_test_results(
+    test_id: str,
+    body: dict,
+    current_user: dict = Depends(require_permission("abtest:manage")),
+):
+    """手动录入变体表现数据
+    
+    请求体:
+    {
+        "variant_id": "xxx",
+        "views": 1000,
+        "likes": 50,
+        "comments": 10,
+        "shares": 5
+    }
+    """
+    coll = _get_abtest_collection()
+    from bson import ObjectId
+    doc = await coll.find_one({"_id": ObjectId(test_id)})
+    if not doc:
+        raise HTTPException(404, detail={"code": 404, "error": "测试不存在"})
+
+    variant_id = body.get("variant_id", "")
+    if not variant_id:
+        raise HTTPException(400, detail={"code": 400, "error": "variant_id 不能为空"})
+
+    views = int(body.get("views", 0))
+    likes = int(body.get("likes", 0))
+    comments = int(body.get("comments", 0))
+    shares = int(body.get("shares", 0))
+    engagement_rate = round((likes + comments + shares) / max(views, 1), 4)
+
+    # 更新 results 数组
+    results = doc.get("results", [])
+    # 移除旧的同 variant_id 结果
+    results = [r for r in results if r.get("variant_id") != variant_id]
+    results.append({
+        "variant_id": variant_id,
+        "views": views,
+        "likes": likes,
+        "comments": comments,
+        "shares": shares,
+        "engagement_rate": engagement_rate,
+        "collected_at": datetime.utcnow().isoformat(),
+        "source": "manual",
+    })
+
+    await coll.update_one(
+        {"_id": ObjectId(test_id)},
+        {"$set": {"results": results, "updated_at": datetime.utcnow()}},
+    )
+
+    return {"code": 200, "data": {"variant_id": variant_id, "engagement_rate": engagement_rate}}

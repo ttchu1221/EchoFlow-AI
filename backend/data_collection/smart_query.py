@@ -1,0 +1,255 @@
+from __future__ import annotations
+
+import json
+import os
+import re
+from datetime import datetime
+
+from .service import _db, record_many
+
+
+PLATFORM_ALIASES = {
+    "douyin": ["抖音", "douyin"],
+    "xiaohongshu": ["小红书", "xhs", "xiaohongshu"],
+    "bilibili": ["b站", "bilibili", "哔哩哔哩"],
+    "weibo": ["微博", "weibo"],
+}
+
+
+INTENT_TOKENS = (
+    "最近", "现在", "帮我", "分析", "看看", "一下", "什么", "有哪些", "热点", "趋势", "数据",
+    "找", "搜索", "获取", "相关", "内容", "东西", "在", "的", "关于", "品牌", "产品", "视频",
+    "笔记", "作品", "信息",
+)
+
+
+def infer_collection_plan(question: str) -> dict:
+    question = _focus_question(question)
+    text = question.lower()
+    platform = "douyin"
+    for key, aliases in PLATFORM_ALIASES.items():
+        if any(alias.lower() in text for alias in aliases):
+            platform = key
+            break
+
+    source_type = "hot_search"
+    if any(word in question for word in ("竞品", "对手", "账号", "达人", "博主")):
+        source_type = "competitor_content"
+    elif any(word in question for word in ("找", "搜索", "获取", "相关内容", "相关的内容", "品牌", "产品", "东西")):
+        source_type = "keyword_content"
+
+    account_name = ""
+    account_match = re.search(r"(?:账号|博主|达人)[:：\s]+([\w\u4e00-\u9fa5\-_.]+)", question)
+    if not account_match:
+        account_match = re.search(r"竞品(?:账号|博主|达人)?[:：\s]+([\w\u4e00-\u9fa5\-_.]+)", question)
+    if account_match:
+        account_name = account_match.group(1)
+
+    keyword = _extract_keyword(question, platform, account_name)
+
+    return {
+        "platform": platform,
+        "source_type": source_type,
+        "keyword": keyword,
+        "object_type": "account" if account_name else ("keyword" if source_type == "keyword_content" else "trend"),
+        "confidence": 0.9 if source_type == "keyword_content" and keyword else 0.72,
+        "account_id": "",
+        "account_name": account_name,
+        "limit": 20,
+        "reason": "根据问题中的平台、竞品/热点/关键词意图自动选择采集源",
+    }
+
+
+def _focus_question(question: str) -> str:
+    quoted = re.findall(r"[`「『“\"]([^`」』”\"]{2,120})[`」』”\"]", question)
+    if quoted:
+        return quoted[-1].strip()
+    return question.strip()
+
+
+def _extract_keyword(question: str, platform: str, account_name: str = "") -> str:
+    if account_name:
+        return account_name
+
+    explicit = re.search(r"(?:找|搜索|获取|关于)\s*([\w\u4e00-\u9fa5\-_.]{2,30}?)(?:的|在|相关|内容|东西|视频|笔记|作品|信息)", question)
+    if explicit:
+        return _clean_keyword(explicit.group(1), platform)
+
+    before_de = re.search(r"([\w\u4e00-\u9fa5\-_.]{2,30}?)的(?:东西|相关|内容|视频|笔记|作品|信息)", question)
+    if before_de:
+        return _clean_keyword(before_de.group(1), platform)
+
+    keyword = question
+    return _clean_keyword(keyword, platform)
+
+
+def _clean_keyword(keyword: str, platform: str) -> str:
+    aliases = PLATFORM_ALIASES.get(platform, [])
+    for token in (*INTENT_TOKENS, *aliases):
+        keyword = keyword.replace(token, " ")
+    keyword = re.sub(r"\s+", " ", keyword).strip()[:80]
+    return keyword
+
+
+async def answer_with_auto_collection(question: str) -> dict:
+    plan = infer_collection_plan(question)
+    items = await _collect_by_plan(plan)
+    stats = await record_many(
+        plan["platform"],
+        plan["source_type"],
+        [{**item, "platform": plan["platform"]} for item in items],
+    )
+    stats.update({
+        "source_status": "success" if items else "empty",
+        "fallback_used": any(item.get("source_note") for item in items),
+        "failure_reason": "" if items else "未从目标平台或兜底源获取到有效内容",
+    })
+    context_items = await _latest_context(plan, limit=12) if items else []
+    answer = await _summarize(question, plan, context_items, stats)
+    return {
+        "question": question,
+        "answer": answer,
+        "plan": plan,
+        "collection": stats,
+        "evidence": context_items[:8],
+        "answered_at": datetime.utcnow().isoformat(),
+    }
+
+
+async def _collect_by_plan(plan: dict) -> list[dict]:
+    if plan["source_type"] == "competitor_content":
+        from competitor.crawler import fetch_competitor_content
+        return await fetch_competitor_content(
+            plan["platform"],
+            plan.get("account_id") or plan.get("account_name") or plan.get("keyword", ""),
+            plan.get("account_name") or plan.get("keyword", ""),
+            plan["limit"],
+        )
+    if plan["source_type"] == "keyword_content":
+        from crawlers.content_search import fetch_keyword_content
+        return await fetch_keyword_content(plan["platform"], plan.get("keyword", ""), plan["limit"])
+
+    from crawlers.data_source import fetch_hot_search
+    return await fetch_hot_search(plan["platform"], plan["limit"])
+
+
+async def _latest_context(plan: dict, limit: int = 12) -> list[dict]:
+    db = _db()
+    base_query = {
+        "platform": plan["platform"],
+        "source_type": plan["source_type"],
+    }
+    if plan["source_type"] == "keyword_content" and plan.get("keyword"):
+        return await _latest_matching_context(
+            db,
+            base_query,
+            [
+                {"keyword": plan["keyword"]},
+                {"search_keyword": plan["keyword"]},
+                {"raw.keyword": plan["keyword"]},
+                {"raw.search_keyword": plan["keyword"]},
+            ],
+            limit,
+        )
+    elif plan["source_type"] == "competitor_content" and (plan.get("account_name") or plan.get("keyword")):
+        account = plan.get("account_name") or plan.get("keyword")
+        return await _latest_matching_context(
+            db,
+            base_query,
+            [
+                {"account_name": account},
+                {"author": account},
+                {"raw.account_name": account},
+            ],
+            limit,
+        )
+    cursor = (
+        db["standard_contents"]
+        .find(base_query, {"_id": 0, "raw": 0})
+        .sort("collected_at", -1)
+        .limit(limit)
+    )
+    return await cursor.to_list(length=limit)
+
+
+async def _latest_matching_context(db, base_query: dict, selectors: list[dict], limit: int) -> list[dict]:
+    seen = set()
+    docs = []
+    for selector in selectors:
+        query = {**base_query, **selector}
+        cursor = (
+            db["standard_contents"]
+            .find(query, {"_id": 0, "raw": 0})
+            .sort("collected_at", -1)
+            .limit(limit)
+        )
+        for doc in await cursor.to_list(length=limit):
+            dedupe_key = doc.get("entity_id") or doc.get("url") or doc.get("title")
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
+            docs.append(doc)
+            if len(docs) >= limit:
+                return docs
+    return docs
+
+
+async def _summarize(question: str, plan: dict, items: list[dict], stats: dict) -> str:
+    if not items:
+        return (
+            f"我已尝试按「{plan['platform']} / {plan['source_type']}」自动采集，但这次没有拿到有效数据。"
+            "建议检查平台登录状态、关键词或竞品账号是否可访问。"
+        )
+
+    compact = [
+        {
+            "title": item.get("title"),
+            "platform": item.get("platform"),
+            "metrics": item.get("metrics", {}),
+            "quality": item.get("quality", {}).get("score"),
+        }
+        for item in items[:12]
+    ]
+    if os.getenv("SMART_COLLECTION_USE_LLM", "true").lower() in {"0", "false", "no"}:
+        return _fallback_summary(plan, items, stats)
+
+    try:
+        from agents.base import call_llm_with_retry, get_llm
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        llm = get_llm(temperature=0.35, max_tokens=1600)
+        messages = [
+            SystemMessage(content=(
+                "你是 EchoFlow AI 的数据采集分析 Agent。你必须基于刚采集的数据回答，"
+                "输出中文，结构为：结论、数据依据、运营建议、下一步采集建议。"
+            )),
+            HumanMessage(content=json.dumps({
+                "用户问题": question,
+                "自动采集计划": plan,
+                "采集统计": stats,
+                "样本数据": compact,
+            }, ensure_ascii=False)),
+        ]
+        result = await call_llm_with_retry(
+            llm,
+            messages,
+            max_retries=0,
+            timeout=8,
+            agent_name="smart_data_collection",
+        )
+        return result.content if hasattr(result, "content") else str(result)
+    except Exception:
+        return _fallback_summary(plan, items, stats)
+
+
+def _fallback_summary(plan: dict, items: list[dict], stats: dict) -> str:
+    top_titles = [item.get("title") for item in items[:5] if item.get("title")]
+    avg_quality = stats.get("avg_quality", 0)
+    target = plan.get("keyword") or plan.get("account_name") or "当前热榜"
+    source_note = "，其中包含兜底公开搜索结果" if stats.get("fallback_used") else ""
+    return (
+        f"已围绕「{target}」自动采集 {plan['platform']} 的 {plan['source_type']} 数据，共记录 "
+        f"{stats.get('items_recorded', 0)} 条{source_note}，平均质量分 {avg_quality}。\n\n"
+        f"当前最值得关注的样本包括：{'、'.join(top_titles) or '暂无标题'}。\n\n"
+        "运营建议：优先围绕高热词做标题/脚本测试，并把发布后的播放、点赞、评论、分享回流到采集中心，形成下一轮判断依据。"
+    )
