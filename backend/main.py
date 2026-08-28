@@ -189,34 +189,37 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning(f"[统一模型] 加载配置失败: {e}")
 
-    # v1.5: 初始化 Milvus RAG 向量存储
-    try:
-        from rag.vector_store import rag_store
-        rag_store.initialize()
-    except Exception as e:
-        logger.warning(f"Milvus RAG 初始化失败，RAG 功能不可用: {e}")
+    # v1.5: 初始化 Milvus RAG 向量存储。默认关闭，避免缺少 Embedding Key 时污染运营采集日志。
+    if os.getenv("RAG_ENABLE", "false").lower() in {"1", "true", "yes"}:
+        try:
+            from rag.vector_store import rag_store
+            rag_store.initialize()
+        except Exception as e:
+            logger.warning(f"Milvus RAG 初始化失败，RAG 功能不可用: {e}")
+    else:
+        logger.info("[RAG] 向量知识库初始化已关闭，如需开启请设置 RAG_ENABLE=true")
 
-    # v1.6: 启动时自动同步热点数据到 RAG + 注册定时同步
-    try:
-        import asyncio
-        from rag.sync import sync_all
+    # v1.6: RAG 热点同步。默认关闭，避免启动日志和数据采集入口混在一起。
+    if os.getenv("RAG_AUTO_SYNC", "false").lower() in {"1", "true", "yes"}:
+        try:
+            from rag.sync import sync_all
 
-        async def _periodic_rag_sync():
-            """每 6 小时自动同步热点数据到 RAG"""
-            while True:
-                await asyncio.sleep(6 * 3600)  # 6 小时
-                try:
-                    await sync_all()
-                except Exception as e:
-                    logger.warning(f"[RAG定时同步] 失败: {e}")
+            async def _periodic_rag_sync():
+                """每 6 小时自动同步热点数据到 RAG"""
+                while True:
+                    await asyncio.sleep(6 * 3600)  # 6 小时
+                    try:
+                        await sync_all()
+                    except Exception as e:
+                        logger.warning(f"[RAG定时同步] 失败: {e}")
 
-        # 启动时立即同步一次（后台任务，不阻塞启动）
-        asyncio.create_task(sync_all())
-        # 注册定时同步后台任务
-        asyncio.create_task(_periodic_rag_sync())
-        logger.info("[RAG] 定时同步任务已注册（每6小时）")
-    except Exception as e:
-        logger.warning(f"[RAG] 定时同步注册失败: {e}")
+            asyncio.create_task(sync_all())
+            asyncio.create_task(_periodic_rag_sync())
+            logger.info("[RAG] 定时同步任务已注册（每6小时）")
+        except Exception as e:
+            logger.warning(f"[RAG] 定时同步注册失败: {e}")
+    else:
+        logger.info("[RAG] 自动热点同步已关闭，如需开启请设置 RAG_AUTO_SYNC=true")
 
     # v1.7: 竞品自动采集（每4小时）+ A/B测试数据采集（每2小时）
     try:

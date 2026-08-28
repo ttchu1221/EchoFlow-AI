@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from datetime import datetime
 
 from .service import _db, record_many
+
+logger = logging.getLogger("echoflow.data_collection.smart_query")
 
 
 PLATFORM_ALIASES = {
@@ -161,6 +164,15 @@ def _clean_keyword(keyword: str, platform: str) -> str:
 
 async def answer_with_auto_collection(question: str) -> dict:
     plan = infer_collection_plan(question)
+    logger.info(
+        "[智能采集] 计划生成 question=%s platform=%s source_type=%s keyword=%s account=%s confidence=%s",
+        question,
+        plan["platform"],
+        plan["source_type"],
+        plan.get("keyword", ""),
+        plan.get("account_name", ""),
+        plan.get("confidence", 0),
+    )
     items = await _collect_by_plan(plan)
     stats = await record_many(
         plan["platform"],
@@ -172,7 +184,22 @@ async def answer_with_auto_collection(question: str) -> dict:
         "fallback_used": any(item.get("source_note") for item in items),
         "failure_reason": "" if items else "未从目标平台或兜底源获取到有效内容",
     })
-    context_items = await _latest_context(plan, limit=12) if items else []
+    context_items = await _latest_context(plan, limit=12)
+    if not items and context_items:
+        stats["source_status"] = "cache_fallback"
+        stats["failure_reason"] = "实时采集未返回新数据，已使用库内同平台同关键词的历史内容作为参考"
+    stats["evidence_count"] = len(context_items)
+    logger.info(
+        "[智能采集] 采集完成 platform=%s source_type=%s keyword=%s items_seen=%s items_recorded=%s evidence=%s fallback=%s status=%s",
+        plan["platform"],
+        plan["source_type"],
+        plan.get("keyword", ""),
+        stats.get("items_seen", 0),
+        stats.get("items_recorded", 0),
+        stats.get("evidence_count", 0),
+        stats.get("fallback_used", False),
+        stats.get("source_status", ""),
+    )
     answer = await _summarize(question, plan, context_items, stats)
     return {
         "question": question,
@@ -315,6 +342,13 @@ def _fallback_summary(plan: dict, items: list[dict], stats: dict) -> str:
     avg_quality = stats.get("avg_quality", 0)
     target = plan.get("keyword") or plan.get("account_name") or "当前热榜"
     source_note = "，其中包含兜底公开搜索结果" if stats.get("fallback_used") else ""
+    if stats.get("source_status") == "cache_fallback":
+        return (
+            f"本次已围绕「{target}」请求 {plan['platform']} 的 {plan['source_type']} 实时采集，但实时源暂时没有返回新数据。"
+            f"我已改用库内同关键词历史内容作为参考，共找到 {stats.get('evidence_count', len(items))} 条可用证据。\n\n"
+            f"当前最值得关注的样本包括：{'、'.join(top_titles) or '暂无标题'}。\n\n"
+            "运营建议：先基于这些历史样本提炼卖点、标题和脚本方向；同时建议稍后重试实时采集，或接入平台登录态/API 以获得最新互动指标。"
+        )
     return (
         f"已围绕「{target}」自动采集 {plan['platform']} 的 {plan['source_type']} 数据，共记录 "
         f"{stats.get('items_recorded', 0)} 条{source_note}，平均质量分 {avg_quality}。\n\n"

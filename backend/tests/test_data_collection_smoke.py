@@ -257,6 +257,18 @@ async def main():
     assert keyword_result["evidence"]
     assert "珀莱雅" in keyword_result["answer"]
 
+    import crawlers.content_search as content_search
+
+    async def fake_empty_keyword_content(platform, keyword, limit=20):
+        return []
+
+    content_search.fetch_keyword_content = fake_empty_keyword_content
+    cached_keyword_result = await smart_query.answer_with_auto_collection("我想看珀莱雅在抖音的内容")
+    assert cached_keyword_result["collection"]["items_recorded"] == 0
+    assert cached_keyword_result["collection"]["source_status"] == "cache_fallback"
+    assert cached_keyword_result["collection"]["evidence_count"] > 0
+    assert cached_keyword_result["evidence"]
+
     overview = await service.overview(7)
     assert overview["raw_events"] == 8
     assert overview["standard_contents"] == 4
