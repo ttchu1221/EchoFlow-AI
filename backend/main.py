@@ -587,6 +587,7 @@ async def get_hot_search(platform: str, limit: int = 30):
         raise HTTPException(status_code=400, detail=f"不支持的平台: {platform}，可选: {valid}")
     rid = _rid()
     try:
+        logger.info(f"[热搜接口] request_id={rid} platform={platform} limit={limit}")
         # 检查是否命中缓存
         from crawlers.data_source import _cache
         cache_key = f"hot_{platform}_{limit}"

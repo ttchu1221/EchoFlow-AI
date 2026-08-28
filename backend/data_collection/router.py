@@ -146,16 +146,19 @@ async def _run_collect(
 ) -> dict:
     started_at = datetime.utcnow()
     if source_type == "hot_search":
+        logger.info(f"[数据采集] 热榜采集 platform={platform} limit={limit} job_id={job_id or ''}")
         items = await fetch_hot_search(platform, limit)
         normalized_items = [{**item, "platform": platform} for item in items]
     elif source_type == "keyword_content":
         from crawlers.content_search import fetch_keyword_content
         if not keyword:
             raise HTTPException(status_code=400, detail="关键词内容采集需要填写 keyword")
+        logger.info(f"[数据采集] 关键词内容采集 platform={platform} keyword={keyword} limit={limit} job_id={job_id or ''}")
         items = await fetch_keyword_content(platform, keyword, limit)
         normalized_items = [{**item, "platform": platform, "keyword": keyword} for item in items]
     elif source_type == "competitor_content":
         from competitor.crawler import fetch_competitor_content
+        logger.info(f"[数据采集] 竞品内容采集 platform={platform} account={account_name or keyword or account_id} limit={limit} job_id={job_id or ''}")
         items = await fetch_competitor_content(platform, account_id, account_name or keyword, limit)
         normalized_items = [{**item, "platform": platform, "account_name": account_name or keyword} for item in items]
     else:

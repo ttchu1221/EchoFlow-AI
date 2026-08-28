@@ -347,12 +347,8 @@ async def fetch_hot_search(platform: str, limit: int = 30) -> list[dict]:
         _cache.set(cache_key, results)
         return results
 
-    # 层级2: 并行请求原生 API + tophub
+    # 层级2: 平台原生 API。抖音优先只走原生接口，避免失效聚合节点产生误导性 404。
     tasks = []
-
-    node_id = _TOPHUB_NODES.get(platform)
-    if node_id:
-        tasks.append(_fetch_tophub_node(node_id, platform, limit))
 
     if platform == "bilibili":
         tasks.append(_fetch_bilibili_native(limit))
@@ -362,6 +358,10 @@ async def fetch_hot_search(platform: str, limit: int = 30) -> list[dict]:
         tasks.append(_fetch_douyin_native(limit))
     elif platform == "xiaohongshu":
         tasks.append(_fetch_xiaohongshu_native(limit))
+
+    node_id = _TOPHUB_NODES.get(platform)
+    if node_id and platform != "douyin":
+        tasks.append(_fetch_tophub_node(node_id, platform, limit))
 
     if tasks:
         # 用 as_completed 遍历所有结果，任一成功即返回
