@@ -178,8 +178,8 @@ export default function DataCollectionPage() {
     <div className="min-h-screen p-6 space-y-6 animate-fade-in">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-txt-bright">数据采集中心</h2>
-          <p className="text-sm text-txt-secondary mt-1">统一管理热榜、竞品、平台同步和发布后效果回流</p>
+          <h2 className="text-2xl font-bold text-txt-bright">市场与竞品</h2>
+          <p className="text-sm text-txt-secondary mt-1">围绕品牌词、商品词和竞品账号采集内容样本，判断选题和卖点机会</p>
         </div>
         <button className="btn-secondary w-fit" onClick={loadAll} disabled={loading}>
           {loading ? '刷新中...' : '刷新数据'}
@@ -188,8 +188,8 @@ export default function DataCollectionPage() {
 
       <section className="card p-5 space-y-4 border-brand-500/20">
         <div>
-          <h3 className="text-base font-semibold text-txt-bright">智能采集问答</h3>
-          <p className="text-xs text-txt-muted mt-1">直接提问，系统会自动判断平台和数据源，采集后再回答</p>
+          <h3 className="text-base font-semibold text-txt-bright">一句话找市场信息</h3>
+          <p className="text-xs text-txt-muted mt-1">输入品牌、商品或竞品需求，系统自动判断平台和数据源，先采集再分析</p>
         </div>
         <div className="flex flex-col lg:flex-row gap-3">
           <input
@@ -201,7 +201,7 @@ export default function DataCollectionPage() {
               setAskError('');
             }}
             onKeyDown={(e) => { if (e.key === 'Enter') askAndCollect(); }}
-            placeholder="例如：找珀莱雅在抖音相关的内容；最近小红书护肤有什么热点？"
+            placeholder="例如：找珀莱雅在抖音相关内容；小红书有哪些双抗水乳爆款笔记？"
           />
           <button className="btn-primary lg:w-36" onClick={askAndCollect} disabled={asking || !question.trim()}>
             {asking ? '采集中...' : '自动获取'}

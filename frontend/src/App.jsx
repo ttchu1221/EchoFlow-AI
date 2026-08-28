@@ -13,18 +13,17 @@ const AIAssistantPage = lazy(() => import('./components/AIAssistantPage'));
 const SettingsPage = lazy(() => import('./components/SettingsPage'));
 
 const NAV_ITEMS = [
-  { id: 'dashboard',   label: '驾驶舱',   icon: '🌐', group: '核心' },
-  { id: 'assistant',   label: 'AI 助手',  icon: '💬', group: '核心' },
-  { id: 'coo',         label: 'AI COO',  icon: '🤖', group: '核心' },
-  { id: 'agents',      label: '智能体',   icon: '⚡', group: '核心' },
-  { id: 'data',        label: '数据采集', icon: '📡', group: '增长' },
-  { id: 'brain',       label: '增长大脑', icon: '🧠', group: '增长' },
-  { id: 'tools',       label: '工具箱',   icon: '🛠️', group: '增长' },
-  { id: 'knowledge',   label: '知识中心', icon: '📚', group: '学习' },
-  { id: 'settings',    label: '系统设置', icon: '⚙️', group: '系统' },
+  { id: 'dashboard',   label: '运营工作台', icon: '📊', group: '经营' },
+  { id: 'data',        label: '市场与竞品', icon: '🔎', group: '经营' },
+  { id: 'tools',       label: '内容生产',   icon: '✍️', group: '执行' },
+  { id: 'brain',       label: '效果复盘',   icon: '📈', group: '执行' },
+  { id: 'assistant',   label: '运营助手',   icon: '💬', group: '智能' },
+  { id: 'coo',         label: '任务调度',   icon: '🎯', group: '智能' },
+  { id: 'knowledge',   label: '知识与商品', icon: '📚', group: '配置' },
+  { id: 'settings',    label: '系统配置',   icon: '⚙️', group: '配置' },
 ];
 
-const GROUPS = ['核心', '增长', '学习', '系统'];
+const GROUPS = ['经营', '执行', '智能', '配置'];
 
 const PAGE_MAP = {
   dashboard:  EnterpriseDashboard,

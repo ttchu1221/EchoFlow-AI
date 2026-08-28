@@ -69,8 +69,8 @@ export default function EnterpriseDashboard() {
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white dashboard-glow-text">企业驾驶舱</h1>
-            <p className="text-txt-secondary mt-1">AI Commerce Operating System · 实时运营监控</p>
+            <h1 className="text-3xl font-bold text-white dashboard-glow-text">运营工作台</h1>
+            <p className="text-txt-secondary mt-1">围绕 GMV、内容效率、竞品异动和执行任务做每日运营判断</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="tag-green animate-pulse">● 实时同步</span>
@@ -156,7 +156,7 @@ export default function EnterpriseDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* AI 建议 */}
         <div className="dashboard-panel rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">🤖 AI 建议</h3>
+          <h3 className="text-lg font-bold text-white mb-4">今日运营建议</h3>
           <div className="space-y-3">
             {ai_suggestions.map((s) => (
               <div key={s.id} className="flex items-start gap-3 p-3 rounded-xl bg-panel-100/50 hover:bg-panel-100 transition-colors">
@@ -165,7 +165,7 @@ export default function EnterpriseDashboard() {
                 }`} />
                 <div>
                   <p className="text-sm text-txt-primary">{s.text}</p>
-                  <span className="text-xs text-txt-muted mt-1 inline-block">via {s.agent} Agent</span>
+                  <span className="text-xs text-txt-muted mt-1 inline-block">来源：{s.agent}</span>
                 </div>
               </div>
             ))}
@@ -174,7 +174,7 @@ export default function EnterpriseDashboard() {
 
         {/* Agent 状态 */}
         <div className="dashboard-panel rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">⚡ Agent 执行状态</h3>
+          <h3 className="text-lg font-bold text-white mb-4">任务执行状态</h3>
           <div className="space-y-3">
             {agent_status.map((a) => (
               <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl bg-panel-100/50">
@@ -191,7 +191,7 @@ export default function EnterpriseDashboard() {
 
         {/* 最近活动 */}
         <div className="dashboard-panel rounded-2xl p-6">
-          <h3 className="text-lg font-bold text-white mb-4">📋 最近活动</h3>
+          <h3 className="text-lg font-bold text-white mb-4">最近运营动作</h3>
           <div className="space-y-3">
             {recent_activities.map((a, i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-panel-100/50">
@@ -202,7 +202,7 @@ export default function EnterpriseDashboard() {
                   <p className="text-sm text-txt-primary truncate">{a.action}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-txt-muted">{a.time}</span>
-                    <span className="text-xs text-brand-400">via {a.agent}</span>
+                    <span className="text-xs text-brand-400">来源：{a.agent}</span>
                   </div>
                 </div>
               </div>
