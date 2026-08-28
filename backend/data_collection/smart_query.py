@@ -17,10 +17,26 @@ PLATFORM_ALIASES = {
 
 
 INTENT_TOKENS = (
-    "最近", "现在", "帮我", "分析", "看看", "一下", "什么", "有哪些", "热点", "趋势", "数据",
-    "找", "搜索", "获取", "相关", "内容", "东西", "在", "的", "关于", "品牌", "产品", "视频",
-    "笔记", "作品", "信息",
+    "我想", "最近", "现在", "帮我", "分析", "看看", "看下", "看一下", "看", "查一下", "查",
+    "了解", "一下", "什么", "有哪些", "有没有", "热点", "热搜", "趋势", "榜单", "数据",
+    "找", "搜索", "获取", "相关", "内容", "东西", "在", "的", "关于", "品牌", "产品", "商品",
+    "视频", "笔记", "作品", "信息",
 )
+
+SEARCH_INTENT_TOKENS = (
+    "找", "搜索", "获取", "查", "看", "了解", "分析", "相关", "关于",
+)
+
+CONTENT_INTENT_TOKENS = (
+    "内容", "视频", "笔记", "作品", "商品", "产品", "爆款", "测评", "种草", "带货", "直播",
+    "旗舰店", "店铺", "口碑", "评价", "评论", "素材", "案例",
+)
+
+HOT_ONLY_TOKENS = ("热点", "热搜", "趋势", "榜单", "热榜")
+
+GENERIC_KEYWORDS = {
+    "", "护肤", "美妆", "彩妆", "电商", "运营", "短视频", "内容", "品牌", "产品", "商品",
+}
 
 
 def infer_collection_plan(question: str) -> dict:
@@ -32,32 +48,59 @@ def infer_collection_plan(question: str) -> dict:
             platform = key
             break
 
-    source_type = "hot_search"
-    if any(word in question for word in ("竞品", "对手", "账号", "达人", "博主")):
-        source_type = "competitor_content"
-    elif any(word in question for word in ("找", "搜索", "获取", "相关内容", "相关的内容", "品牌", "产品", "东西")):
-        source_type = "keyword_content"
-
-    account_name = ""
-    account_match = re.search(r"(?:账号|博主|达人)[:：\s]+([\w\u4e00-\u9fa5\-_.]+)", question)
-    if not account_match:
-        account_match = re.search(r"竞品(?:账号|博主|达人)?[:：\s]+([\w\u4e00-\u9fa5\-_.]+)", question)
-    if account_match:
-        account_name = account_match.group(1)
-
+    account_name = _extract_account_name(question)
     keyword = _extract_keyword(question, platform, account_name)
+
+    source_type = "hot_search"
+    if account_name or any(word in question for word in ("竞品", "对手", "账号", "达人", "博主")):
+        source_type = "competitor_content"
+    elif _should_collect_keyword_content(question, platform, keyword):
+        source_type = "keyword_content"
+    else:
+        keyword = ""
+
+    confidence = 0.72
+    if source_type == "keyword_content" and keyword:
+        confidence = 0.9
+    elif source_type == "competitor_content" and (account_name or keyword):
+        confidence = 0.86
 
     return {
         "platform": platform,
         "source_type": source_type,
         "keyword": keyword,
         "object_type": "account" if account_name else ("keyword" if source_type == "keyword_content" else "trend"),
-        "confidence": 0.9 if source_type == "keyword_content" and keyword else 0.72,
+        "confidence": confidence,
         "account_id": "",
         "account_name": account_name,
         "limit": 20,
         "reason": "根据问题中的平台、竞品/热点/关键词意图自动选择采集源",
     }
+
+
+def _extract_account_name(question: str) -> str:
+    account_match = re.search(r"(?:账号|博主|达人)[:：\s]+([\w\u4e00-\u9fa5\-_.]+)", question)
+    if not account_match:
+        account_match = re.search(r"竞品(?:账号|博主|达人)?[:：\s]+([\w\u4e00-\u9fa5\-_.]+)", question)
+    if account_match:
+        return account_match.group(1)
+    return ""
+
+
+def _should_collect_keyword_content(question: str, platform: str, keyword: str) -> bool:
+    if not keyword or keyword in GENERIC_KEYWORDS:
+        return False
+
+    has_hot_only_intent = any(token in question for token in HOT_ONLY_TOKENS)
+    has_search_intent = any(token in question for token in SEARCH_INTENT_TOKENS)
+    has_content_intent = any(token in question for token in CONTENT_INTENT_TOKENS)
+    has_platform = any(alias.lower() in question.lower() for alias in PLATFORM_ALIASES.get(platform, []))
+
+    if has_search_intent or has_content_intent:
+        return True
+    if has_platform and not has_hot_only_intent:
+        return True
+    return False
 
 
 def _focus_question(question: str) -> str:
@@ -71,13 +114,38 @@ def _extract_keyword(question: str, platform: str, account_name: str = "") -> st
     if account_name:
         return account_name
 
-    explicit = re.search(r"(?:找|搜索|获取|关于)\s*([\w\u4e00-\u9fa5\-_.]{2,30}?)(?:的|在|相关|内容|东西|视频|笔记|作品|信息)", question)
+    alias_pattern = "|".join(re.escape(alias) for alias in PLATFORM_ALIASES.get(platform, []))
+    before_platform = re.search(
+        rf"([\w\u4e00-\u9fa5\-_.]{{2,40}}?)(?:在|\s+)?(?:{alias_pattern})(?:上|的)?(?:相关|内容|东西|视频|笔记|作品|信息|$)",
+        question,
+        re.I,
+    )
+    if before_platform:
+        cleaned = _clean_keyword(before_platform.group(1), platform)
+        if cleaned:
+            return cleaned
+
+    platform_scoped = re.search(
+        rf"(?:{alias_pattern})(?:上|的)?\s*([\w\u4e00-\u9fa5\-_.]{{2,40}}?)(?:的|相关|内容|东西|视频|笔记|作品|信息|$)",
+        question,
+        re.I,
+    )
+    if platform_scoped:
+        cleaned = _clean_keyword(platform_scoped.group(1), platform)
+        if cleaned:
+            return cleaned
+
+    explicit = re.search(r"(?:找|搜索|获取|关于|查|看|了解|分析)(?:一下)?\s*([\w\u4e00-\u9fa5\-_.]{2,40}?)(?:的|在|上|相关|内容|东西|视频|笔记|作品|信息)", question)
     if explicit:
-        return _clean_keyword(explicit.group(1), platform)
+        cleaned = _clean_keyword(explicit.group(1), platform)
+        if cleaned:
+            return cleaned
 
     before_de = re.search(r"([\w\u4e00-\u9fa5\-_.]{2,30}?)的(?:东西|相关|内容|视频|笔记|作品|信息)", question)
     if before_de:
-        return _clean_keyword(before_de.group(1), platform)
+        cleaned = _clean_keyword(before_de.group(1), platform)
+        if cleaned:
+            return cleaned
 
     keyword = question
     return _clean_keyword(keyword, platform)

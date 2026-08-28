@@ -26,9 +26,28 @@ const SOURCE_TYPES = [
 function inferKeywordQuestion(text) {
   const value = (text || '').trim();
   const platform = PLATFORMS.find((p) => value.includes(p.label))?.value || 'douyin';
-  const match = value.match(/(?:找|搜索|获取|关于)\s*([\w\u4e00-\u9fa5\-_.]{2,30}?)(?:的|在|相关|内容|东西|视频|笔记|作品|信息)/);
-  const keyword = match?.[1]?.replace(/抖音|小红书|微博|B站|哔哩哔哩|douyin|xiaohongshu|weibo|bilibili/gi, '').trim();
+  const platformPattern = '(?:抖音|小红书|微博|B站|哔哩哔哩|douyin|xiaohongshu|weibo|bilibili)';
+  const cleanKeyword = (raw) => (raw || '')
+    .replace(/我想|最近|现在|帮我|分析|看看|看下|看一下|看|查一下|查|了解|一下|什么|有哪些|有没有|热点|热搜|趋势|榜单|数据|找|搜索|获取|相关|内容|东西|在|的|关于|品牌|产品|商品|视频|笔记|作品|信息/gi, ' ')
+    .replace(/抖音|小红书|微博|B站|哔哩哔哩|douyin|xiaohongshu|weibo|bilibili/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const patterns = [
+    new RegExp(`([\\w\\u4e00-\\u9fa5\\-_.]{2,40}?)(?:在|\\s+)?${platformPattern}(?:上|的)?(?:相关|内容|东西|视频|笔记|作品|信息|$)`, 'i'),
+    new RegExp(`${platformPattern}(?:上|的)?\\s*([\\w\\u4e00-\\u9fa5\\-_.]{2,40}?)(?:的|相关|内容|东西|视频|笔记|作品|信息|$)`, 'i'),
+    /(?:找|搜索|获取|关于|查|看|了解|分析)(?:一下)?\s*([\w\u4e00-\u9fa5\-_.]{2,40}?)(?:的|在|上|相关|内容|东西|视频|笔记|作品|信息)/i,
+  ];
+  let keyword = '';
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    keyword = cleanKeyword(match?.[1]);
+    if (keyword) break;
+  }
+  if (!keyword) keyword = cleanKeyword(value);
+  const hasKeywordIntent = /找|搜索|获取|查|看|了解|分析|相关|关于|内容|视频|笔记|作品|商品|产品|爆款|测评|种草|带货|直播|旗舰店|店铺|口碑|评价|评论|素材|案例/i.test(value);
+  const isGenericHot = /热点|热搜|趋势|榜单|热榜/.test(value) && !hasKeywordIntent;
   if (!keyword) return null;
+  if (isGenericHot) return null;
   return { platform, keyword };
 }
 

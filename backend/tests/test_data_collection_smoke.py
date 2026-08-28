@@ -224,6 +224,24 @@ async def main():
     assert keyword_plan["source_type"] == "keyword_content"
     assert keyword_plan["keyword"] == "珀莱雅"
 
+    ecommerce_keyword_cases = [
+        ("我想看珀莱雅在抖音的内容", "douyin", "珀莱雅"),
+        ("珀莱雅 抖音 内容", "douyin", "珀莱雅"),
+        ("抖音 珀莱雅 双抗水乳", "douyin", "珀莱雅 双抗水乳"),
+        ("帮我查一下抖音上珀莱雅双抗水乳相关视频", "douyin", "珀莱雅双抗水乳"),
+        ("小红书双抗水乳爆款笔记", "xiaohongshu", "双抗水乳爆款"),
+        ("看看韩束官方旗舰店最近抖音作品", "douyin", "韩束官方旗舰店"),
+    ]
+    for question, expected_platform, expected_keyword in ecommerce_keyword_cases:
+        plan = smart_query.infer_collection_plan(question)
+        assert plan["platform"] == expected_platform, question
+        assert plan["source_type"] == "keyword_content", question
+        assert plan["keyword"] == expected_keyword, question
+
+    generic_hot_plan = smart_query.infer_collection_plan("最近小红书护肤有什么热点？")
+    assert generic_hot_plan["platform"] == "xiaohongshu"
+    assert generic_hot_plan["source_type"] == "hot_search"
+
     quoted_keyword_plan = smart_query.infer_collection_plan("毫无关联，用`找珀莱雅的东西在抖音相关的内容`这个")
     assert quoted_keyword_plan["source_type"] == "keyword_content"
     assert quoted_keyword_plan["keyword"] == "珀莱雅"
